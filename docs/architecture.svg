@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold">
+    Talent Sourcing Architecture
+  </text>
+
+  <!-- Frontend Layer -->
+  <g transform="translate(50, 100)">
+    <rect width="200" height="160" rx="10" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="100" y="30" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">Frontend</text>
+    <text x="20" y="60" font-family="Arial" font-size="12">• React + TypeScript</text>
+    <text x="20" y="80" font-family="Arial" font-size="12">• Material-UI</text>
+    <text x="20" y="100" font-family="Arial" font-size="12">• React Query</text>
+    <text x="20" y="120" font-family="Arial" font-size="12">• React Router</text>
+    <text x="20" y="140" font-family="Arial" font-size="12">• Axios Client</text>
+  </g>
+
+  <!-- Backend Layer -->
+  <g transform="translate(300, 100)">
+    <rect width="200" height="160" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="100" y="30" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">Backend</text>
+    <text x="20" y="60" font-family="Arial" font-size="12">• FastAPI</text>
+    <text x="20" y="80" font-family="Arial" font-size="12">• JWT Auth</text>
+    <text x="20" y="100" font-family="Arial" font-size="12">• Business Logic</text>
+    <text x="20" y="120" font-family="Arial" font-size="12">• API Routes</text>
+    <text x="20" y="140" font-family="Arial" font-size="12">• Data Models</text>
+  </g>
+
+  <!-- Database Layer -->
+  <g transform="translate(550, 100)">
+    <rect width="200" height="160" rx="10" fill="#fff3e0" stroke="#ef6c00" stroke-width="2"/>
+    <text x="100" y="30" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">Database</text>
+    <text x="20" y="60" font-family="Arial" font-size="12">• MongoDB Atlas</text>
+    <text x="20" y="80" font-family="Arial" font-size="12">• GridFS Storage</text>
+    <text x="20" y="100" font-family="Arial" font-size="12">• Collections</text>
+    <text x="20" y="120" font-family="Arial" font-size="12">• Indexes</text>
+    <text x="20" y="140" font-family="Arial" font-size="12">• Async Driver</text>
+  </g>
+
+  <!-- AI Services -->
+  <g transform="translate(300, 320)">
+    <rect width="200" height="160" rx="10" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2"/>
+    <text x="100" y="30" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">AI Services</text>
+    <text x="20" y="60" font-family="Arial" font-size="12">• DeepInfra API</text>
+    <text x="20" y="80" font-family="Arial" font-size="12">• Llama Model</text>
+    <text x="20" y="100" font-family="Arial" font-size="12">• Resume Analysis</text>
+    <text x="20" y="120" font-family="Arial" font-size="12">• Skill Extraction</text>
+    <text x="20" y="140" font-family="Arial" font-size="12">• Score Computation</text>
+  </g>
+
+  <!-- Arrows -->
+  <!-- Frontend to Backend -->
+  <path d="M 250,180 L 300,180" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Backend to Database -->
+  <path d="M 500,180 L 550,180" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Backend to AI -->
+  <path d="M 400,260 L 400,320" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Arrow Marker -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+</svg> 
