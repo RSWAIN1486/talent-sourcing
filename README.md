@@ -81,9 +81,6 @@ pip install -e .
 # Configure environment
 cp .env.example .env
 # Edit .env with your configuration
-
-# Run migrations
-alembic upgrade head
 ```
 
 3. **Frontend Setup**

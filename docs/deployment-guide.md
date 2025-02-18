@@ -34,12 +34,7 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. **Run database migrations**
-```bash
-alembic upgrade head
-```
-
-5. **Start backend server**
+4. **Start backend server**
 ```bash
 uvicorn app.main:app --reload
 ```
