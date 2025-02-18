@@ -139,6 +139,7 @@ talent-sourcing/
 │   ├── architecture.md   # System architecture
 │   ├── api-documentation.md # API reference
 │   ├── deployment-guide.md # Deployment instructions
+│   ├── vercel-deployment.md # Vercel deployment guide
 │   └── testing-guide.md  # Testing guidelines
 └── README.md
 ```
@@ -148,6 +149,7 @@ talent-sourcing/
 - [Architecture Overview](docs/architecture.md)
 - [API Documentation](docs/api-documentation.md)
 - [Deployment Guide](docs/deployment-guide.md)
+- [Vercel Deployment Guide](docs/vercel-deployment.md)
 - [Testing Guide](docs/testing-guide.md)
 
 ## Development
