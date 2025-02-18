@@ -66,9 +66,18 @@ async def create_job(
 async def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     """Get a job by ID"""
     try:
+        logger.info(f"Getting job with ID: {job_id}")
         async for db in get_database():
-            job = await db.jobs.find_one({"_id": ObjectId(job_id)})
-            return job if job else None
+            try:
+                job = await db.jobs.find_one({"_id": ObjectId(job_id)})
+                if not job:
+                    logger.info(f"Job with ID {job_id} not found")
+                    return None
+                logger.info(f"Found job: {job['_id']}")
+                return job
+            except Exception as e:
+                logger.error(f"Database error while getting job {job_id}: {str(e)}", exc_info=True)
+                raise
     except Exception as e:
         logger.error(f"Error getting job: {str(e)}", exc_info=True)
         raise

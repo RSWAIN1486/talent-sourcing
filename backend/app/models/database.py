@@ -145,7 +145,7 @@ def serialize_user(user: dict) -> dict:
 def serialize_job(job: dict) -> dict:
     """Convert MongoDB job document to JSON-serializable format matching frontend expectations"""
     return {
-        "id": str(job["_id"]),
+        "id": str(job["_id"]) if isinstance(job["_id"], ObjectId) else str(job["_id"]),
         "title": job["title"],
         "description": job["description"],
         "responsibilities": job["responsibilities"],
@@ -153,9 +153,9 @@ def serialize_job(job: dict) -> dict:
         "total_candidates": int(job.get("total_candidates", 0)),
         "resume_screened": int(job.get("resume_screened", 0)),
         "phone_screened": int(job.get("phone_screened", 0)),
-        "created_by_id": str(job["created_by_id"]),
-        "created_at": job["created_at"].isoformat(),
-        "updated_at": job["updated_at"].isoformat()
+        "created_by_id": str(job["created_by_id"]) if isinstance(job["created_by_id"], ObjectId) else str(job["created_by_id"]),
+        "created_at": job["created_at"].isoformat() if isinstance(job["created_at"], datetime) else job["created_at"],
+        "updated_at": job["updated_at"].isoformat() if isinstance(job["updated_at"], datetime) else job["updated_at"]
     }
 
 def serialize_candidate(candidate: dict) -> dict:

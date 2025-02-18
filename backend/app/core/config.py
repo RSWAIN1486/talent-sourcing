@@ -56,7 +56,7 @@ class Settings(BaseSettings):
         # URL encode the username and password
         username = quote_plus(self.MONGODB_USERNAME)
         password = quote_plus(self.MONGODB_PASSWORD)
-        return f"mongodb+srv://{username}:{password}@{self.MONGODB_CLUSTER}/?retryWrites=true&w=majority&appName=Cluster0"
+        return f"mongodb+srv://{username}:{password}@{self.MONGODB_CLUSTER}/?retryWrites=true&w=majority&appName=Cluster0&tlsAllowInvalidCertificates=true"
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
