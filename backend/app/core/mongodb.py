@@ -45,7 +45,7 @@ class MongoDB:
             await self.client.admin.command('ping')
             logger.info("Successfully connected to MongoDB Atlas")
         except Exception as e:
-            logger.error(f"Failed to connect to MongoDB: {str(e)}")
+            logger.error(f"Failed to connect to MongoDB: {str(e)}", exc_info=True)
             raise
 
     def close(self):

@@ -5,7 +5,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.config import settings
 from app.services import auth
 from app.models.database import serialize_user
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/login")
@@ -13,21 +15,28 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Dict[str, s
     """
     OAuth2 compatible token login, get an access token for future requests
     """
-    user = await auth.authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = await auth.authenticate_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = auth.create_access_token(
+            str(user["_id"]), expires_delta=access_token_expires
         )
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        str(user["_id"]), expires_delta=access_token_expires
-    )
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
 
 @router.post("/register")
 async def register(request: Dict[str, Any]) -> Dict[str, Any]:
