@@ -32,7 +32,9 @@ async def get_database() -> AsyncGenerator[motor.motor_asyncio.AsyncIOMotorDatab
                 minPoolSize=0,
                 waitQueueTimeoutMS=5000,
                 retryWrites=True,
-                retryReads=True
+                retryReads=True,
+                tls=True,
+                tlsAllowInvalidCertificates=True
             )
             
             # Test connection
