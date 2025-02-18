@@ -7,7 +7,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  Assessment as AssessmentIcon,
   People as PeopleIcon,
   Work as WorkIcon,
   Phone as PhoneIcon,

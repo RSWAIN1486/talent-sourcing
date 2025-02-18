@@ -24,7 +24,6 @@ interface NavbarProps {
 export default function Navbar({ onToggleTheme, mode }: NavbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const getActiveTab = () => {
     const path = location.pathname;

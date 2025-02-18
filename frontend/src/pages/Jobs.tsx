@@ -59,7 +59,6 @@ export default function Jobs() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [error, setError] = useState<string>('');
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<JobFormData>({
     defaultValues,
