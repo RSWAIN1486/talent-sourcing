@@ -7,7 +7,6 @@ import {
   Tabs,
   Toolbar,
   Typography,
-  useTheme,
   Button,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';

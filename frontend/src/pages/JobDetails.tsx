@@ -7,27 +7,12 @@ import {
   Grid,
   Typography,
   CircularProgress,
-  IconButton,
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsApi } from '../services/api';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import CandidateCard from '../components/CandidateCard';
-import { styled } from '@mui/material/styles';
-
-// Styled component for hidden file input
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
 
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
