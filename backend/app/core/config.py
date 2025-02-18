@@ -39,16 +39,12 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
 
     # File upload settings
-    UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024  # 50MB
     ALLOWED_EXTENSIONS: set[str] = {"pdf", "zip"}
 
     # AI API settings
     AI_API_KEY: str = "your-ai-api-key-here"
     AI_BASE_URL: str = "https://api.deepinfra.com/v1/openai"
-
-    # Create upload directory if it doesn't exist
-    Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
