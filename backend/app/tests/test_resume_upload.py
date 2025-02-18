@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from fastapi import UploadFile
 from io import BytesIO
+from PyPDF2 import PdfWriter, PdfReader
 from app.services.candidates import upload_resume, process_pdf_file
 from app.services.ai import extract_resume_info, analyze_resume
 from app.models.database import User
@@ -131,16 +132,19 @@ def test_pdf_path():
     os.makedirs(test_dir, exist_ok=True)
     pdf_path = os.path.join(test_dir, "test_resume.pdf")
     
-    # Create a simple PDF with the test content
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
+    # Create a PDF using PyPDF2
+    pdf_writer = PdfWriter()
+    page = pdf_writer.add_blank_page(width=612, height=792)  # Letter size
+    page.insert_text(
+        text=pdf_content,
+        x=72,
+        y=720,
+        font_size=12,
+        font_name="Helvetica"
+    )
     
-    c = canvas.Canvas(pdf_path, pagesize=letter)
-    y = 750  # Start from top
-    for line in pdf_content.split('\n'):
-        c.drawString(72, y, line)
-        y -= 15
-    c.save()
+    with open(pdf_path, 'wb') as output_file:
+        pdf_writer.write(output_file)
     
     yield pdf_path
     
