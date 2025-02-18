@@ -73,13 +73,13 @@ async def get_job(job_id: str) -> Optional[Dict[str, Any]]:
         logger.error(f"Error getting job: {str(e)}", exc_info=True)
         raise
 
-async def get_jobs() -> List[Dict[str, Any]]:
-    """Get all jobs"""
+async def get_jobs(skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get all jobs with pagination"""
     try:
         async for db in get_database():
-            cursor = db.jobs.find()
-            jobs = await cursor.to_list(length=None)
-            return jobs
+            cursor = db.jobs.find().sort("created_at", -1).skip(skip).limit(limit)
+            jobs = await cursor.to_list(length=limit)
+            return [serialize_job(job) for job in jobs]
     except Exception as e:
         logger.error(f"Error getting jobs: {str(e)}", exc_info=True)
         raise
