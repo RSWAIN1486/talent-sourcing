@@ -23,10 +23,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Use
     except JWTError:
         raise credentials_exception
         
-    async for db in get_database():
-        user_data = await db.users.find_one({"_id": ObjectId(user_id)})
-        if user_data is None:
-            raise credentials_exception
-        return User(**user_data)
+    db = await get_database()
+
+    user_data = await db.users.find_one({"_id": ObjectId(user_id)})
+    if user_data is None:
+        raise credentials_exception
+    return User(**user_data)
     
     raise credentials_exception 

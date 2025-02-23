@@ -4,13 +4,12 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-import motor.motor_asyncio
+from bson import ObjectId
+import logging
 
 from app.core.config import settings
 from app.core.mongodb import get_database
 from app.models.database import create_user, serialize_user
-from bson import ObjectId
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +27,8 @@ def get_password_hash(password: str) -> str:
 
 async def get_user_by_email(email: str) -> Optional[dict]:
     try:
-        async for db in get_database():
-            return await db.users.find_one({"email": email})
+        db = await get_database()  # Directly get database instance
+        return await db.users.find_one({"email": email})
     except Exception as e:
         logger.error(f"Error getting user by email: {str(e)}", exc_info=True)
         raise
@@ -37,9 +36,7 @@ async def get_user_by_email(email: str) -> Optional[dict]:
 async def authenticate_user(email: str, password: str) -> Optional[dict]:
     try:
         user = await get_user_by_email(email)
-        if not user:
-            return None
-        if not verify_password(password, user["hashed_password"]):
+        if not user or not verify_password(password, user["hashed_password"]):
             return None
         return user
     except Exception as e:
@@ -69,14 +66,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
-        if user_id is None:
+        if not user_id:
             raise credentials_exception
-        
-        async for db in get_database():
-            user = await db.users.find_one({"_id": ObjectId(user_id)})
-            if user is None:
-                raise credentials_exception
-            return user
+
+        db = await get_database()
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise credentials_exception
+        return user
     except JWTError as e:
         logger.error(f"JWT error: {str(e)}", exc_info=True)
         raise credentials_exception
@@ -92,16 +89,11 @@ async def get_current_active_user(current_user: dict = Depends(get_current_user)
 async def create_new_user(email: str, password: str, full_name: str) -> dict:
     try:
         hashed_password = get_password_hash(password)
-        
-        user_data = create_user(
-            email=email,
-            hashed_password=hashed_password,
-            full_name=full_name
-        )
-        
-        async for db in get_database():
-            await db.users.insert_one(user_data)
-            return serialize_user(user_data)
+        user_data = create_user(email=email, hashed_password=hashed_password, full_name=full_name)
+
+        db = await get_database()
+        await db.users.insert_one(user_data)
+        return serialize_user(user_data)
     except Exception as e:
         logger.error(f"Error creating new user: {str(e)}", exc_info=True)
-        raise 
+        raise
