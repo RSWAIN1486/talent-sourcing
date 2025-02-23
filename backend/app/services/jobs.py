@@ -20,7 +20,7 @@ async def create_job(
         logger.info(f"Creating job with title: {title}")
         logger.info(f"Created by user: {created_by}")
         
-        db = get_database()
+        db = await get_database()
         # Create job document
         try:
             job = {
@@ -67,7 +67,7 @@ async def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     """Get a job by ID"""
     try:
         logger.info(f"Getting job with ID: {job_id}")
-        db = get_database()
+        db = await get_database()
         try:
             job = await db.jobs.find_one({"_id": ObjectId(job_id)})
             if not job:
@@ -85,7 +85,7 @@ async def get_job(job_id: str) -> Optional[Dict[str, Any]]:
 async def get_jobs(skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
     """Get all jobs with pagination"""
     try:
-        db = get_database()
+        db = await get_database()
         cursor = db.jobs.find().sort("created_at", -1).skip(skip).limit(limit)
         jobs = await cursor.to_list(length=limit)
         return [serialize_job(job) for job in jobs]
@@ -101,7 +101,7 @@ async def update_job(
     requirements: Optional[str] = None
 ) -> Optional[dict]:
     try:
-        db = get_database()
+        db = await get_database()
         update_data = {
             "updated_at": datetime.utcnow()
         }
@@ -128,7 +128,7 @@ async def update_job(
 
 async def delete_job(job_id: str) -> bool:
     try:
-        db = get_database()
+        db = await get_database()
         result = await db.jobs.delete_one({"_id": ObjectId(job_id)})
         return result.deleted_count > 0
     except Exception as e:
@@ -145,7 +145,7 @@ async def increment_job_stats(
     Increment job statistics with the new counts
     """
     try:
-        db = get_database()
+        db = await get_database()
         logger.info(f"Incrementing stats for job {job_id}: total={total_candidates}, resume={resume_screened}, phone={phone_screened}")
 
         update_data = {
@@ -176,7 +176,7 @@ async def sync_job_candidates_count(job_id: str) -> Optional[dict]:
     Sync the job's candidate counts with the actual numbers in the database
     """
     try:
-        db = get_database()
+        db = await get_database()
         logger.info(f"Starting sync for job {job_id}")
 
         # Count actual candidates
@@ -223,7 +223,7 @@ async def migrate_job_fields():
     """Migrate job fields to include new required fields"""
     logger.info("Starting job field migration")
     try:
-        db = get_database()
+        db = await get_database()
         result = await db.jobs.update_many(
             {
                 "$or": [
@@ -248,7 +248,7 @@ async def migrate_job_fields():
 async def get_job_stats() -> Dict[str, int]:
     """Get job statistics"""
     try:
-        db = get_database()
+        db = await get_database()
         pipeline = [
             {
                 "$group": {

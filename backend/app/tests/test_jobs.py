@@ -27,7 +27,7 @@ async def test_job():
         "updated_at": datetime.utcnow()
     }
     
-    db = get_database()
+    db = await get_database()
     await db.jobs.insert_one(job_data)
     yield job_data
     await db.jobs.delete_one({"_id": job_data["_id"]})

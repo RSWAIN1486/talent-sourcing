@@ -90,7 +90,7 @@ async def get_jobs(skip: int = 0, limit: int = 10) -> List[dict]:
 @router.get("/stats")
 async def get_job_stats() -> dict:
     """Get overall job statistics"""
-    db = get_database()
+    db = await get_database()
     
     # Get total jobs
     total_jobs = await db.jobs.count_documents({})

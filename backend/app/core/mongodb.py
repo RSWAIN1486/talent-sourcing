@@ -11,13 +11,14 @@ logger = logging.getLogger(__name__)
 client: Optional[motor.motor_asyncio.AsyncIOMotorClient] = None
 database: Optional[motor.motor_asyncio.AsyncIOMotorDatabase] = None
 
+
 async def connect_to_mongo():
     """✅ Connect to MongoDB on startup and keep it alive."""
     global client, database
     if client is None:
         try:
             logger.info(f"🔌 Connecting to MongoDB at {settings.MONGODB_CLUSTER}")
-            
+
             # ✅ Ensure the event loop is running
             loop = asyncio.get_running_loop()
             client = motor.motor_asyncio.AsyncIOMotorClient(
@@ -47,17 +48,20 @@ async def connect_to_mongo():
             database = None
             raise
 
+
 async def ensure_mongo_connection():
     """✅ Ensure MongoDB is connected before returning database."""
     global database
     if database is None:
         logger.warning("⚠️ Database is not connected. Reconnecting...")
         await connect_to_mongo()
-    return database
+    return database  # ✅ Return actual database instance
+
 
 async def get_database():
     """✅ Always ensure MongoDB is connected before returning the database."""
     return await ensure_mongo_connection()
+
 
 async def get_gridfs():
     """✅ Get GridFS instance asynchronously"""
@@ -67,6 +71,7 @@ async def get_gridfs():
     except Exception as e:
         logger.error(f"🚨 GridFS error: {str(e)}", exc_info=True)
         raise
+
 
 async def close_mongo_connection():
     """✅ Prevent closing MongoDB connection in Vercel"""
