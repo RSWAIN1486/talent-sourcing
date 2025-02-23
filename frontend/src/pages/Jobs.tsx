@@ -216,7 +216,7 @@ export default function Jobs() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mt={8}>
         <CircularProgress />
       </Box>
     );
@@ -224,21 +224,21 @@ export default function Jobs() {
 
   if (fetchError) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mt={8}>
         <Typography color="error">Error loading jobs. Please try again.</Typography>
       </Box>
     );
   }
 
   return (
-    <Box>
+    <Box sx={{ pt: 8, px: 3 }}>
       {/* Selection Toolbar */}
       <Fade in={selectedJobs.size > 0}>
         <AppBar 
           position="fixed" 
           color="default" 
           sx={{ 
-            top: 0,
+            top: 64, // Position below the main navbar
             left: 0,
             right: 0,
             zIndex: (theme: Theme) => theme.zIndex.drawer + 1
@@ -270,7 +270,7 @@ export default function Jobs() {
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box display="flex" alignItems="center">
-          <Typography variant="h1">Jobs</Typography>
+          <Typography variant="h4">Jobs</Typography>
           {jobs && jobs.length > 0 && (
             <Checkbox
               checked={selectedJobs.size === jobs.length}

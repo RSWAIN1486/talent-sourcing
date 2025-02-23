@@ -1,6 +1,9 @@
-import axios from 'axios';
+import axios, { AxiosProgressEvent } from 'axios';
 
+// Get the API URL from environment variables, fallback to localhost for development
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+console.log('Using API URL:', API_URL); // For debugging
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -131,11 +134,12 @@ export const jobsApi = {
     api.get<Candidate[]>(`/candidates/${jobId}/candidates`).then(res => res.data),
   getCandidate: (jobId: string, candidateId: string) =>
     api.get<Candidate>(`/candidates/${jobId}/candidates/${candidateId}`).then(res => res.data),
-  createCandidate: (jobId: string, data: FormData) =>
-    api.post<Candidate>(`/candidates/${jobId}/upload`, data, {
+  createCandidate: (jobId: string, formData: FormData, onProgress?: (progressEvent: AxiosProgressEvent) => void) =>
+    api.post<Candidate>(`/candidates/${jobId}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      onUploadProgress: onProgress,
     }).then(res => res.data),
   updateCandidate: (jobId: string, candidateId: string, data: Partial<Candidate>) =>
     api.put<Candidate>(`/candidates/${jobId}/${candidateId}`, data).then(res => res.data),
