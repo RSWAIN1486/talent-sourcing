@@ -11,7 +11,7 @@
           "src": "/(.*)",
           "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
           "headers": {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "https://talent-sourcing-p631.vercel.app",
             "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Credentials": "true"
@@ -19,4 +19,4 @@
           "dest": "app/main.py"
         }
       ]
-} 
+}
