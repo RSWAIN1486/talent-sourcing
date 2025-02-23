@@ -45,7 +45,7 @@ async def process_pdf_file(file_content: bytes, filename: str, job_id: str, crea
                     }
                 )
             
-            db = await get_database()
+            db = get_database()
 
             # Create candidate record
             candidate_id = ObjectId()
@@ -139,7 +139,7 @@ async def get_resume_file(candidate_id: str) -> tuple[bytes, str]:
     Returns tuple of (file_content, filename)
     """
     try:
-        db = await get_database()
+        db = get_database()
 
         # Get candidate to find file ID
         candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id)})
@@ -177,7 +177,7 @@ async def get_candidates(job_id: str, skip: int = 0, limit: int = 10) -> List[di
         # Log the query we're about to make
         logger.info(f"Querying candidates with job_id: {ObjectId(job_id)}")
         
-        db = await get_database()
+        db = get_database()
 
         cursor = db.candidates.find({"job_id": ObjectId(job_id)}).skip(skip).limit(limit)
         candidates = await cursor.to_list(length=limit)
@@ -205,7 +205,7 @@ async def get_candidate(job_id: str, candidate_id: str) -> Optional[dict]:
     Get a specific candidate
     """
     try:
-        db = await get_database()
+        db = get_database()
 
         candidate_data = await db.candidates.find_one({
             "_id": ObjectId(candidate_id),
@@ -230,7 +230,7 @@ async def update_candidate_info(
     Update candidate information after AI processing
     """
     try:
-        db = await get_database()
+        db = get_database()
 
         update_data = {
             "updated_at": datetime.utcnow()
@@ -265,7 +265,7 @@ async def delete_candidate(candidate_id: str):
     Delete a candidate and their resume file
     """
     try:
-        db = await get_database()
+        db = get_database()
 
         # Get candidate to find file ID
         candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id)})
@@ -302,7 +302,7 @@ async def migrate_candidates_to_gridfs():
     """Migrate candidates with resume_path to GridFS storage"""
     logger.info("Starting candidate migration to GridFS")
     try:
-        db = await get_database()
+        db = get_database()
 
         cursor = db.candidates.find({"resume_path": {"$exists": True}})
         candidates = await cursor.to_list(length=None)

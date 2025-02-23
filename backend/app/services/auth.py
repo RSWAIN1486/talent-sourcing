@@ -27,7 +27,7 @@ def get_password_hash(password: str) -> str:
 
 async def get_user_by_email(email: str) -> Optional[dict]:
     try:
-        db = await get_database()  # Directly get database instance
+        db = get_database()  # Directly get database instance
         return await db.users.find_one({"email": email})
     except Exception as e:
         logger.error(f"Error getting user by email: {str(e)}", exc_info=True)
@@ -69,7 +69,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         if not user_id:
             raise credentials_exception
 
-        db = await get_database()
+        db = get_database()
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise credentials_exception
@@ -91,7 +91,7 @@ async def create_new_user(email: str, password: str, full_name: str) -> dict:
         hashed_password = get_password_hash(password)
         user_data = create_user(email=email, hashed_password=hashed_password, full_name=full_name)
 
-        db = await get_database()
+        db = get_database()
         await db.users.insert_one(user_data)
         return serialize_user(user_data)
     except Exception as e:
