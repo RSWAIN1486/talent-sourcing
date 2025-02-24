@@ -20,7 +20,8 @@ frontend_origins = [
     "https://talent-sourcing-p631.vercel.app",
     "https://your-custom-frontend.vercel.app",
     "http://127.0.0.1:8000",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://talent-sourcing-fe.onrender.com"
 ]
 
 # ✅ Set all CORS enabled origins
