@@ -35,17 +35,19 @@ async def process_pdf_file(file_content: bytes, filename: str, job_id: str, crea
             # Analyze resume and compute score
             analysis_result = await analyze_resume(temp_path)
 
-            async for fs in get_gridfs():
-                # Store file in GridFS
-                file_id = await fs.upload_from_stream(
-                    filename=filename,
-                    source=BytesIO(file_content),
-                    metadata={
-                        "job_id": job_id,
-                        "created_by": created_by.id,
-                        "content_type": "application/pdf"
-                    }
-                )
+            # Get GridFS instance
+            fs = await get_gridfs()
+            
+            # Store file in GridFS
+            file_id = await fs.upload_from_stream(
+                filename=filename,
+                source=BytesIO(file_content),
+                metadata={
+                    "job_id": job_id,
+                    "created_by": created_by.id,
+                    "content_type": "application/pdf"
+                }
+            )
             
             db = await get_database()
 
@@ -154,11 +156,11 @@ async def get_resume_file(candidate_id: str) -> tuple[bytes, str]:
         
         # Get file from GridFS
         try:
-            async for fs in get_gridfs():
-                grid_out = await fs.open_download_stream(ObjectId(file_id))
-                content = await grid_out.read()
-                filename = grid_out.filename
-                return content, filename
+            fs = await get_gridfs()
+            grid_out = await fs.open_download_stream(ObjectId(file_id))
+            content = await grid_out.read()
+            filename = grid_out.filename
+            return content, filename
         except Exception as e:
             logger.error(f"Error reading file from GridFS: {str(e)}")
             raise HTTPException(status_code=404, detail="Resume file not found in GridFS")
@@ -278,8 +280,8 @@ async def delete_candidate(candidate_id: str):
         file_id = candidate.get("resume_file_id")
         if file_id:
             try:
-                async for fs in get_gridfs():
-                    await fs.delete(ObjectId(file_id))
+                fs = await get_gridfs()
+                await fs.delete(ObjectId(file_id))
             except Exception as e:
                 logger.error(f"Error deleting file from GridFS: {str(e)}")
         
@@ -390,7 +392,7 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
         content = await file.read()
 
         # Get database connection
-        db = get_database()
+        db = await get_database()
 
         # Create GridFS bucket
         fs = AsyncIOMotorGridFSBucket(db)
