@@ -1,0 +1,173 @@
+ZeroGrad AI - Recruitment Solution Pricing
+
+[Table of Contents]
+1. Cost Components
+2. Subscription Plans
+3. Technical Specifications
+4. Cost Analysis
+
+-----------------------------------------------------------
+
+1. COST COMPONENTS
+
+1.1 Infrastructure
+• MongoDB Database: Up to $10/month
+• AWS Spot Instance: ~$9/month
+• Load Balancer: ~$20/month
+• Storage & Network: ~$10/month
+
+1.2 AI Processing
+• Resume Analysis (Llama 8B)
+  - Input: $0.03 per 1M tokens
+  - Output: $0.05 per 1M tokens
+  - Average Cost/Resume: ~$0.0001
+
+1.3 Voice Agent (Premium Plans)
+• Interview Duration: Up to 10 minutes
+• Cost per Interview: ~$0.50-$1.00
+• Includes:
+  - Voice Processing (Ultravox/Twilio)
+  - Transcript Analysis
+  - AI-powered Insights
+
+-----------------------------------------------------------
+
+2. SUBSCRIPTION PLANS
+
+2.1 Basic Plan (Resume Processing Only)
+
+Starter Tier
+• Price: $29/month
+• Volume: 25-100 resumes/month
+• Features:
+  ✓ Resume parsing and analysis
+  ✓ Basic candidate scoring
+  ✓ Job matching
+  ✓ Basic analytics dashboard
+  ✓ Email support
+
+Growth Tier
+• Price: $79/month
+• Volume: 101-500 resumes/month
+• Features: All Starter features plus
+  ✓ Advanced analytics
+  ✓ Bulk processing
+  ✓ Priority support
+  ✓ API access
+
+Enterprise Tier
+• Price: From $199/month
+• Volume: 501+ resumes/month
+• Features: All Growth features plus
+  ✓ Dedicated support
+  ✓ Custom integrations
+  ✓ SLA guarantees
+  ✓ White-labeling
+
+2.2 Premium Plan (With Voice Agent)
+
+Starter Tier
+• Price: $59/month
+• Volume: 
+  - 25-100 resumes/month
+  - 25 voice interviews/month
+• Features: All Basic Plan features plus
+  ✓ Voice interviews
+  ✓ Basic interview insights
+  ✓ 30-day recording storage
+
+Growth Tier
+• Price: $149/month
+• Volume:
+  - 101-500 resumes/month
+  - 100 voice interviews/month
+• Features: All Basic Growth features plus
+  ✓ Advanced interview insights
+  ✓ Personality analysis
+  ✓ 90-day recording storage
+  ✓ Custom templates
+
+Enterprise Tier
+• Price: From $399/month
+• Volume:
+  - 501+ resumes/month
+  - Unlimited interviews
+• Features: All Premium Growth features plus
+  ✓ Custom voice training
+  ✓ Advanced integrations
+  ✓ 1-year recording storage
+
+-----------------------------------------------------------
+
+3. TECHNICAL SPECIFICATIONS
+
+3.1 Processing Capacity
+
+Starter Tier
+• Server: t3.small
+• Resume Parsing: 2-3 concurrent
+• Voice Interviews: 1-2 concurrent
+
+Growth Tier
+• Server: t3.medium
+• Resume Parsing: 4-5 concurrent
+• Voice Interviews: 2-3 concurrent
+
+Enterprise Tier
+• Server: t3.large
+• Resume Parsing: 8-10 concurrent
+• Voice Interviews: 5-6 concurrent
+
+3.2 Performance
+• Resume Analysis: 30-45 seconds
+• Voice Interview: 5-10 minutes
+• Auto-scaling enabled for all tiers
+
+-----------------------------------------------------------
+
+4. COST ANALYSIS
+
+4.1 Basic Plan ROI
+
+Starter Tier
+• Cost/Month: ~$40
+• Revenue/Month: $43.5
+• Margin: 8%
+
+Growth Tier
+• Cost/Month: ~$40
+• Revenue/Month: $158
+• Margin: 75%
+
+Enterprise Tier
+• Cost/Month: ~$60
+• Revenue/Month: $597
+• Margin: 90%
+
+4.2 Premium Plan ROI
+
+Starter Tier
+• Cost/Month: ~$65
+• Revenue/Month: $88.5
+• Margin: 27%
+
+Growth Tier
+• Cost/Month: ~$140
+• Revenue/Month: $298
+• Margin: 53%
+
+Enterprise Tier
+• Cost/Month: ~$310
+• Revenue/Month: $1,197
+• Margin: 74%
+
+-----------------------------------------------------------
+
+Notes:
+1. Minimum commitment: 25 resumes/month
+2. Voice interviews limited per tier
+3. Additional interviews available as add-ons
+4. Volume discounts available
+5. Introductory pricing subject to change
+
+For more information, contact our sales team at sales@zerogradai.com 

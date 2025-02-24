@@ -13,6 +13,8 @@ from app.models.database import serialize_candidate
 from app.services.ai import extract_resume_info, analyze_resume
 import logging
 from io import BytesIO
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -376,3 +378,76 @@ def serialize_candidate(candidate: dict) -> dict:
         logger.error(f"Error serializing candidate {candidate.get('_id', 'unknown')}: {str(e)}")
         logger.error(f"Candidate data: {candidate}")
         raise 
+
+async def create_candidate(job_id: str, file: UploadFile) -> dict:
+    """Create a new candidate with resume upload."""
+    try:
+        # Validate job_id
+        if not ObjectId.is_valid(job_id):
+            raise HTTPException(status_code=400, detail="Invalid job ID")
+
+        # Read file content
+        content = await file.read()
+
+        # Get database connection
+        db = get_database()
+
+        # Create GridFS bucket
+        fs = AsyncIOMotorGridFSBucket(db)
+
+        # Upload file to GridFS
+        file_id = await fs.upload_from_stream(
+            file.filename,
+            io.BytesIO(content),
+            metadata={"job_id": job_id}
+        )
+
+        # Analyze resume
+        resume_info = await extract_resume_info(io.BytesIO(content))
+        analysis_result = await analyze_resume(io.BytesIO(content))
+
+        # Create candidate document
+        candidate = {
+            "job_id": ObjectId(job_id),
+            "name": resume_info.get("name", "Unknown"),
+            "email": resume_info.get("email", ""),
+            "phone": resume_info.get("phone"),
+            "location": resume_info.get("location"),
+            "resume_file_id": file_id,
+            "skills": analysis_result.get("skills", {}),
+            "resume_score": analysis_result.get("score", 0),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+
+        result = await db.candidates.insert_one(candidate)
+
+        # Update job's candidate count
+        await db.jobs.update_one(
+            {"_id": ObjectId(job_id)},
+            {
+                "$inc": {
+                    "total_candidates": 1,
+                    "resume_screened": 1
+                }
+            }
+        )
+
+        # Return created candidate
+        candidate["id"] = str(result.inserted_id)
+        return serialize_candidate(candidate)
+
+    except Exception as e:
+        # Clean up GridFS file if it was uploaded
+        if 'file_id' in locals():
+            try:
+                db = get_database()
+                fs = AsyncIOMotorGridFSBucket(db)
+                await fs.delete(file_id)
+            except Exception as cleanup_error:
+                print(f"Error cleaning up GridFS file: {cleanup_error}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create candidate: {str(e)}"
+        ) 
