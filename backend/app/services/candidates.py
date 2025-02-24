@@ -394,8 +394,8 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
         # Get database connection
         db = await get_database()
 
-        # Create GridFS bucket
-        fs = AsyncIOMotorGridFSBucket(db)
+        # Get GridFS instance properly
+        fs = await get_gridfs()
 
         # Upload file to GridFS
         file_id = await fs.upload_from_stream(
@@ -404,51 +404,57 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
             metadata={"job_id": job_id}
         )
 
-        # Analyze resume
-        resume_info = await extract_resume_info(io.BytesIO(content))
-        analysis_result = await analyze_resume(io.BytesIO(content))
+        try:
+            # Analyze resume
+            resume_info = await extract_resume_info(io.BytesIO(content))
+            analysis_result = await analyze_resume(io.BytesIO(content))
 
-        # Create candidate document
-        candidate = {
-            "job_id": ObjectId(job_id),
-            "name": resume_info.get("name", "Unknown"),
-            "email": resume_info.get("email", ""),
-            "phone": resume_info.get("phone"),
-            "location": resume_info.get("location"),
-            "resume_file_id": file_id,
-            "skills": analysis_result.get("skills", {}),
-            "resume_score": analysis_result.get("score", 0),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-
-        result = await db.candidates.insert_one(candidate)
-
-        # Update job's candidate count
-        await db.jobs.update_one(
-            {"_id": ObjectId(job_id)},
-            {
-                "$inc": {
-                    "total_candidates": 1,
-                    "resume_screened": 1
-                }
+            # Create candidate document
+            candidate = {
+                "job_id": ObjectId(job_id),
+                "name": resume_info.get("name", "Unknown"),
+                "email": resume_info.get("email", ""),
+                "phone": resume_info.get("phone"),
+                "location": resume_info.get("location"),
+                "resume_file_id": str(file_id),  # Convert ObjectId to string
+                "skills": analysis_result.get("skills", {}),
+                "resume_score": analysis_result.get("score", 0),
+                "screening_score": None,
+                "screening_summary": None,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
             }
-        )
 
-        # Return created candidate
-        candidate["id"] = str(result.inserted_id)
-        return serialize_candidate(candidate)
+            result = await db.candidates.insert_one(candidate)
+            candidate["_id"] = result.inserted_id
 
-    except Exception as e:
-        # Clean up GridFS file if it was uploaded
-        if 'file_id' in locals():
+            # Update job's statistics
+            await db.jobs.update_one(
+                {"_id": ObjectId(job_id)},
+                {
+                    "$inc": {
+                        "total_candidates": 1,
+                        "resume_screened": 1
+                    },
+                    "$set": {
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+
+            # Return created candidate
+            return serialize_candidate(candidate)
+
+        except Exception as inner_e:
+            # If anything fails after file upload, clean up the uploaded file
             try:
-                db = get_database()
-                fs = AsyncIOMotorGridFSBucket(db)
                 await fs.delete(file_id)
             except Exception as cleanup_error:
-                print(f"Error cleaning up GridFS file: {cleanup_error}")
+                logger.error(f"Error cleaning up GridFS file: {cleanup_error}")
+            raise inner_e
 
+    except Exception as e:
+        logger.error(f"Failed to create candidate: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to create candidate: {str(e)}"

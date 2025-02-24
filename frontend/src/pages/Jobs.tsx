@@ -238,7 +238,7 @@ export default function Jobs() {
           position="fixed" 
           color="default" 
           sx={{ 
-            top: 64, // Position below the main navbar
+            top: 64,
             left: 0,
             right: 0,
             zIndex: (theme: Theme) => theme.zIndex.drawer + 1
@@ -314,9 +314,18 @@ export default function Jobs() {
       <Grid container spacing={3}>
         {jobs?.map((job: Job) => (
           <Grid item xs={12} sm={6} md={4} key={job.id}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Box display="flex" alignItems="flex-start">
+            <Card 
+              sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                '&:hover': {
+                  boxShadow: (theme) => theme.shadows[4]
+                }
+              }}
+            >
+              <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Box display="flex" alignItems="flex-start" mb={2}>
                   <Checkbox
                     checked={selectedJobs.has(job.id)}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleSelectJob(job.id, e.target.checked)}
@@ -331,25 +340,48 @@ export default function Jobs() {
                     <Typography variant="h6" gutterBottom>
                       {job.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      {job.description.slice(0, 150)}...
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {job.description}
                     </Typography>
-                    <Box display="flex" flexDirection="column" gap={1}>
-                      <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          Total Candidates: {job.total_candidates || 0}
-                        </Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          Resume Screened: {job.resume_screened || 0}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Phone Screened: {job.phone_screened || 0}
-                        </Typography>
-                      </Box>
-                    </Box>
                   </Box>
+                </Box>
+
+                <Box 
+                  sx={{ 
+                    mt: 'auto',
+                    pt: 2,
+                    borderTop: 1,
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Total Candidates: {job.total_candidates || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Resume Screened: {job.resume_screened || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary" align="right">
+                        Phone Screened: {job.phone_screened || 0}
+                      </Typography>
+                    </Grid>
+                  </Grid>
                 </Box>
               </CardContent>
             </Card>
