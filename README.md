@@ -16,6 +16,7 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Skill extraction and scoring
 - Candidate profile management
 - Resume download functionality
+- Automated voice screening for candidates
 
 ### AI Integration
 - DeepInfra API integration
@@ -23,6 +24,7 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Automatic information extraction
 - Skill proficiency scoring
 - Overall candidate scoring
+- Voice agent for phone screening with Ultravox AI
 
 ### Analytics & Reporting
 - Job statistics dashboard
@@ -51,6 +53,8 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Llama model integration
 - PDF text extraction
 - Natural language processing
+- Ultravox AI for voice synthesis
+- Twilio for phone call integration
 
 ## Getting Started
 

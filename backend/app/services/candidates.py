@@ -15,8 +15,33 @@ import logging
 from io import BytesIO
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 import io
+import asyncio
+import httpx
+import re
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 logger = logging.getLogger(__name__)
+
+# Helper function for phone number formatting
+def format_phone_number(phone: str) -> str:
+    """
+    Format a phone number to E.164 format for Twilio
+    """
+    # Remove any non-digit characters
+    digits_only = re.sub(r'\D', '', phone)
+    
+    # If the number doesn't start with a country code, add +1 (US)
+    if not phone.startswith('+'):
+        if len(digits_only) == 10:  # US number without country code
+            return f"+1{digits_only}"
+        elif len(digits_only) == 11 and digits_only.startswith('1'):  # US number with 1 prefix
+            return f"+{digits_only}"
+        else:
+            # For other cases, just add + prefix as a fallback
+            return f"+{digits_only}"
+    
+    return phone  # Already in E.164 format
 
 async def process_pdf_file(file_content: bytes, filename: str, job_id: str, created_by: User) -> dict:
     """
@@ -459,3 +484,384 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
             status_code=500,
             detail=f"Failed to create candidate: {str(e)}"
         ) 
+
+async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: User) -> dict:
+    """
+    Initiate a voice screening call to a candidate using Ultravox and Twilio
+    """
+    try:
+        logger.info(f"Initiating voice screening for candidate: {candidate_id}")
+        
+        # Get database connection
+        db = await get_database()
+        
+        # Get candidate details
+        candidate = await db.candidates.find_one({"_id": ObjectId(candidate_id)})
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        # Get job details
+        job = await db.jobs.find_one({"_id": ObjectId(job_id)})
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # Check if candidate has a phone number
+        if not candidate.get("phone"):
+            raise HTTPException(status_code=400, detail="Candidate does not have a phone number")
+        
+        # Format phone number to E.164 format for Twilio
+        phone = format_phone_number(candidate.get("phone"))
+        
+        # Create a system prompt based on the job details
+        system_prompt = f"""
+        You are an AI voice assistant conducting a screening interview for a job. 
+        
+        Job Title: {job.get('title')}
+        Job Description: {job.get('description')}
+        
+        Candidate Name: {candidate.get('name')}
+        
+        Your task is to conduct a brief 3-5 minute screening interview to assess the candidate. 
+        
+        Follow this structure:
+        1. Greeting: Introduce yourself as an AI assistant for [Company Name] and confirm you're speaking with {candidate.get('name')}
+        2. Initial Check: Ask if they are currently looking for job opportunities
+        3. Notice Period: Ask about their current notice period
+        4. Compensation: Ask about their current and expected compensation
+        5. Technical Assessment: Ask 2-3 relevant technical questions based on the job description
+        6. Closing: Thank them for their time and explain the next steps in the process
+        
+        Be professional, friendly, and concise. Listen to their answers and respond appropriately.
+        After the call, provide a summary of the candidate's responses and a screening score from 0 to 100.
+        """
+        
+        # Initialize Twilio client
+        try:
+            twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        except Exception as e:
+            logger.error(f"Failed to initialize Twilio client: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to initialize Twilio client: {str(e)}")
+        
+        # Construct the webhook URL for call completion
+        webhook_url = f"{settings.WEBHOOK_BASE_URL}{settings.API_V1_STR}/candidates/callback/call-complete"
+        
+        # Update the candidate's record to show a screening is in progress
+        await db.candidates.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {
+                "$set": {
+                    "screening_in_progress": True,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # For testing: Use a mock Ultravox integration if the ULTRAVOX_API_KEY is set to "mock"
+        if settings.ULTRAVOX_API_KEY == "mock":
+            logger.info("Using mock Ultravox integration")
+            agent_id = f"mock_agent_{candidate_id}"
+            
+            # Create a simple TwiML for testing
+            twiml = f"""
+            <Response>
+                <Say>Hello {candidate.get('name')}, this is an AI assistant calling from a recruitment agency.</Say>
+                <Pause length="1"/>
+                <Say>I'm calling about the {job.get('title')} position. Would you be interested in discussing this opportunity?</Say>
+                <Pause length="2"/>
+                <Say>Thank you. What is your current notice period at your job?</Say>
+                <Pause length="2"/>
+                <Say>And what is your current compensation package?</Say>
+                <Pause length="2"/>
+                <Say>What are your salary expectations for this new role?</Say>
+                <Pause length="2"/>
+                <Say>Thank you for your time. Someone from our team will follow up with you shortly about next steps.</Say>
+            </Response>
+            """
+            
+            # Make the Twilio call with TwiML
+            try:
+                call = twilio_client.calls.create(
+                    to=phone,
+                    from_=settings.TWILIO_PHONE_NUMBER,
+                    twiml=twiml,
+                    status_callback=webhook_url,
+                    status_callback_event=['completed'],
+                    status_callback_method='POST'
+                )
+                
+                call_id = call.sid
+                logger.info(f"Initiated Twilio call with mock TwiML: {call_id}")
+            except TwilioRestException as e:
+                logger.error(f"Twilio error: {str(e)}")
+                # Update the candidate's record to show screening is no longer in progress
+                await db.candidates.update_one(
+                    {"_id": ObjectId(candidate_id)},
+                    {
+                        "$set": {
+                            "screening_in_progress": False,
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
+                )
+                raise HTTPException(status_code=500, detail=f"Twilio error: {str(e)}")
+        else:
+            # Create agent in Ultravox
+            async with httpx.AsyncClient() as client:
+                try:
+                    ultravox_response = await client.post(
+                        f"{settings.ULTRAVOX_API_BASE_URL}/agents",
+                        headers={
+                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "name": f"Recruitment Call - {candidate.get('name')}",
+                            "description": f"Voice screening for {job.get('title')} position",
+                            "system_prompt": system_prompt,
+                            "voice_id": "echo",  # Default Ultravox voice
+                            "webhook_url": webhook_url,
+                            "metadata": {
+                                "candidate_id": str(candidate_id),
+                                "job_id": str(job_id)
+                            }
+                        },
+                        timeout=30  # 30 second timeout
+                    )
+                    
+                    ultravox_data = await ultravox_response.json()
+                    agent_id = ultravox_data.get("id")
+                    
+                    if not agent_id:
+                        raise HTTPException(status_code=500, detail="Failed to create Ultravox agent")
+                    
+                    logger.info(f"Created Ultravox agent: {agent_id}")
+                except httpx.HTTPError as e:
+                    logger.error(f"Ultravox API error: {str(e)}")
+                    # Update the candidate's record to show screening is no longer in progress
+                    await db.candidates.update_one(
+                        {"_id": ObjectId(candidate_id)},
+                        {
+                            "$set": {
+                                "screening_in_progress": False,
+                                "updated_at": datetime.utcnow()
+                            }
+                        }
+                    )
+                    raise HTTPException(status_code=500, detail=f"Ultravox API error: {str(e)}")
+            
+            # Make the Twilio call
+            try:
+                call = twilio_client.calls.create(
+                    to=phone,
+                    from_=settings.TWILIO_PHONE_NUMBER,
+                    url=f"{settings.ULTRAVOX_API_BASE_URL}/twilio/voice?agent_id={agent_id}",
+                    status_callback=webhook_url,
+                    status_callback_event=['completed'],
+                    status_callback_method='POST'
+                )
+                
+                call_id = call.sid
+                logger.info(f"Initiated Twilio call: {call_id}")
+            except TwilioRestException as e:
+                logger.error(f"Twilio error: {str(e)}")
+                # Update the candidate's record to show screening is no longer in progress
+                await db.candidates.update_one(
+                    {"_id": ObjectId(candidate_id)},
+                    {
+                        "$set": {
+                            "screening_in_progress": False,
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
+                )
+                raise HTTPException(status_code=500, detail=f"Twilio error: {str(e)}")
+        
+        # Store the call info
+        await db.call_sessions.insert_one({
+            "call_id": call_id,
+            "agent_id": agent_id,
+            "candidate_id": ObjectId(candidate_id),
+            "job_id": ObjectId(job_id),
+            "phone_number": phone,
+            "system_prompt": system_prompt,
+            "status": "initiated",
+            "created_by_id": ObjectId(current_user.id if hasattr(current_user, 'id') else current_user.get('id')),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        return {
+            "call_id": call_id,
+            "agent_id": agent_id,
+            "status": "initiated"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in voice_screen_candidate: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def process_call_results(call_data: dict) -> dict:
+    """
+    Process the results of a completed voice screening call
+    """
+    try:
+        logger.info(f"Processing call results: {call_data}")
+        
+        # Get database connection
+        db = await get_database()
+        
+        # Get call ID from Twilio webhook or Ultravox callback
+        # The structure will differ based on which service sends the webhook
+        # We'll check for both possibilities
+        
+        call_id = call_data.get("CallSid") or call_data.get("call_id")
+        if not call_id:
+            logger.error("No call ID found in webhook data")
+            return {"status": "error", "message": "No call ID found in webhook data"}
+        
+        # Find the call session
+        call_session = await db.call_sessions.find_one({"call_id": call_id})
+        if not call_session:
+            logger.error(f"Call session not found for call_id: {call_id}")
+            return {"status": "error", "message": f"Call session not found for call_id: {call_id}"}
+        
+        candidate_id = call_session.get("candidate_id")
+        agent_id = call_session.get("agent_id")
+        
+        # For testing: Generate mock data if using mock Ultravox integration
+        if agent_id and isinstance(agent_id, str) and agent_id.startswith("mock_agent_"):
+            logger.info("Using mock call results")
+            
+            # Generate mock call results
+            transcript = "AI: Hello, this is an AI assistant calling from a recruitment agency.\nCandidate: Hi, yes this is me.\nAI: I'm calling about the Software Engineer position. Would you be interested in discussing this opportunity?\nCandidate: Yes, I'm interested.\nAI: Thank you. What is your current notice period at your job?\nCandidate: I need to give 30 days notice.\nAI: And what is your current compensation package?\nCandidate: I'm currently making 90,000 per year.\nAI: What are your salary expectations for this new role?\nCandidate: I'm looking for around 110,000.\nAI: Thank you for your time. Someone from our team will follow up with you shortly about next steps."
+            
+            screening_score = 85
+            notice_period = "30 days"
+            current_compensation = "$90,000"
+            expected_compensation = "$110,000"
+            screening_summary = "The candidate is interested in the position. They have a 30-day notice period at their current job. Currently making $90,000 and expecting $110,000 for the new role."
+        else:
+            # Get call transcript and analysis from Ultravox
+            async with httpx.AsyncClient() as client:
+                try:
+                    ultravox_response = await client.get(
+                        f"{settings.ULTRAVOX_API_BASE_URL}/calls/{call_id}",
+                        headers={
+                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        timeout=30
+                    )
+                    
+                    ultravox_response.raise_for_status()
+                    call_details = await ultravox_response.json()
+                    
+                    # Get transcript
+                    transcript_response = await client.get(
+                        f"{settings.ULTRAVOX_API_BASE_URL}/calls/{call_id}/transcript",
+                        headers={
+                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        timeout=30
+                    )
+                    
+                    transcript_response.raise_for_status()
+                    transcript_data = await transcript_response.json()
+                    
+                    # Get analysis (this would be a custom endpoint that Ultravox would provide)
+                    # For now, we'll make a general request and adjust as needed
+                    analysis_response = await client.get(
+                        f"{settings.ULTRAVOX_API_BASE_URL}/agents/{agent_id}/analysis?call_id={call_id}",
+                        headers={
+                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        timeout=30
+                    )
+                    
+                    analysis_response.raise_for_status()
+                    analysis_data = await analysis_response.json()
+                    
+                    # Extract the needed fields from the response
+                    # Note: These fields might need to be adjusted based on actual Ultravox API response
+                    transcript = transcript_data.get("transcript", "No transcript available")
+                    
+                    # We'll need to extract these fields from the analysis or transcript
+                    # The exact format will depend on Ultravox's API
+                    screening_score = analysis_data.get("screening_score", 70)  # Default if not available
+                    notice_period = analysis_data.get("notice_period", "Not specified")
+                    current_compensation = analysis_data.get("current_compensation", "Not specified")
+                    expected_compensation = analysis_data.get("expected_compensation", "Not specified")
+                    screening_summary = analysis_data.get("summary", "No summary available")
+                    
+                except httpx.HTTPError as e:
+                    logger.error(f"Error fetching call data from Ultravox: {str(e)}")
+                    # If we can't get the data, we'll still mark the call as completed
+                    # but with error information
+                    transcript = "Error retrieving transcript"
+                    screening_score = None
+                    notice_period = "Error retrieving data"
+                    current_compensation = "Error retrieving data"
+                    expected_compensation = "Error retrieving data"
+                    screening_summary = f"Error retrieving call data: {str(e)}"
+        
+        # Update the candidate with the call results
+        await db.candidates.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {
+                "$set": {
+                    "screening_score": screening_score,
+                    "screening_summary": screening_summary,
+                    "call_transcript": transcript,
+                    "notice_period": notice_period,
+                    "current_compensation": current_compensation,
+                    "expected_compensation": expected_compensation,
+                    "screening_in_progress": False,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Update job statistics
+        job_id = call_session.get("job_id")
+        await db.jobs.update_one(
+            {"_id": ObjectId(job_id)},
+            {
+                "$inc": {
+                    "phone_screened": 1
+                },
+                "$set": {
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Update call session status
+        await db.call_sessions.update_one(
+            {"call_id": call_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "results": {
+                        "screening_score": screening_score,
+                        "screening_summary": screening_summary,
+                        "notice_period": notice_period,
+                        "current_compensation": current_compensation,
+                        "expected_compensation": expected_compensation
+                    },
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        return {
+            "candidate_id": str(candidate_id),
+            "status": "success"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing call results: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) 

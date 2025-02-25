@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Body
 from fastapi.responses import StreamingResponse
 from app.models.api import CandidateResponse
 from app.models.database import User
@@ -8,7 +8,9 @@ from app.services.candidates import (
     get_candidates,
     get_candidate,
     delete_candidate,
-    get_resume_file
+    get_resume_file,
+    voice_screen_candidate,
+    process_call_results
 )
 from app.api.deps import get_current_user
 import os
@@ -99,4 +101,36 @@ async def remove_candidate(
         raise
     except Exception as e:
         logger.error(f"Error deleting candidate: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{job_id}/candidates/{candidate_id}/voice-screen")
+async def screen_candidate_with_voice(
+    job_id: str,
+    candidate_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Initiate a voice screening call to a candidate
+    """
+    try:
+        logger.info(f"Voice screening request for job_id: {job_id}, candidate_id: {candidate_id}")
+        result = await voice_screen_candidate(job_id, candidate_id, current_user)
+        return {"status": "initiated", "call_id": result.get("call_id")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initiating voice screening: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/callback/call-complete")
+async def call_complete_webhook(call_data: dict = Body(...)):
+    """
+    Webhook endpoint for receiving call completion data
+    """
+    try:
+        logger.info(f"Received call completion data: {call_data}")
+        result = await process_call_results(call_data)
+        return {"status": "success", "candidate_id": result.get("candidate_id")}
+    except Exception as e:
+        logger.error(f"Error processing call completion: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     # AI API settings
     AI_API_KEY: str
     AI_BASE_URL: str
+    
+    # Voice Agent Integration settings
+    TWILIO_ACCOUNT_SID: str = "your_twilio_account_sid"
+    TWILIO_AUTH_TOKEN: str = "your_twilio_auth_token"
+    TWILIO_PHONE_NUMBER: str = "your_twilio_phone_number"
+    ULTRAVOX_API_KEY: str = "your_ultravox_api_key"
+    ULTRAVOX_API_BASE_URL: str = "https://api.ultravox.ai/api"
+    WEBHOOK_BASE_URL: str = "your_application_base_url"
+    TEST_PHONE_NUMBER: str = "+919007696846"  # Number for testing Twilio calls
 
     @computed_field
     def MONGODB_URL(self) -> str:

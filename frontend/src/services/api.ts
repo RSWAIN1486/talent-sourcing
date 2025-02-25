@@ -62,6 +62,11 @@ export interface Candidate {
   resume_score: number;
   screening_score?: number | null;
   screening_summary?: string | null;
+  screening_in_progress?: boolean;
+  call_transcript?: string | null;
+  notice_period?: string | null;
+  current_compensation?: string | null;
+  expected_compensation?: string | null;
   created_by_id?: string;  // Added to match backend
   created_at: string;
   updated_at: string;
@@ -224,6 +229,27 @@ export const jobsApi = {
       return response.data;
     } catch (error: any) {
       console.error('Error initiating screening:', error);
+      if (error.response) {
+        console.error('Error response:', {
+          status: error.response.status,
+          headers: error.response.headers,
+          data: error.response.data
+        });
+      }
+      throw error;
+    }
+  },
+  
+  // Voice screening
+  voiceScreenCandidate: async (jobId: string, candidateId: string) => {
+    try {
+      console.log(`Initiating voice screening for job: ${jobId}, candidate: ${candidateId}`);
+      const response = await api.post<{status: string, call_id: string}>(
+        `/candidates/${jobId}/candidates/${candidateId}/voice-screen`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error initiating voice screening:', error);
       if (error.response) {
         console.error('Error response:', {
           status: error.response.status,

@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Chip,
   LinearProgress,
+  Tooltip
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -101,11 +102,11 @@ export default function JobDetails() {
         return;
       }
       
-      await jobsApi.screenCandidate(jobId, candidateId);
+      await jobsApi.voiceScreenCandidate(jobId, candidateId);
       
       queryClient.invalidateQueries({ queryKey: ['candidates', id] });
       
-      alert('Screening call initiated successfully!');
+      alert('Voice screening call initiated successfully!');
     } catch (error) {
       console.error('Error initiating screening call:', error);
       alert('Failed to initiate screening call. Please try again.');
@@ -312,7 +313,23 @@ export default function JobDetails() {
                 </TableCell>
                 <TableCell>
                   {candidate.screening_score != null 
-                    ? candidate.screening_score.toFixed(1) 
+                    ? (
+                      <Tooltip title={
+                        candidate.screening_summary ? 
+                        `Summary: ${candidate.screening_summary}` +
+                        (candidate.notice_period ? `\nNotice Period: ${candidate.notice_period}` : '') +
+                        (candidate.current_compensation ? `\nCurrent: ${candidate.current_compensation}` : '') +
+                        (candidate.expected_compensation ? `\nExpected: ${candidate.expected_compensation}` : '')
+                        : 'No screening summary available'
+                      }>
+                        <span>{candidate.screening_score.toFixed(1)}</span>
+                      </Tooltip>
+                    ) 
+                    : candidate.screening_in_progress
+                    ? <Box display="flex" alignItems="center">
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        <span>In progress</span>
+                      </Box>
                     : 'Not Screened'}
                 </TableCell>
                 <TableCell>
@@ -341,11 +358,14 @@ export default function JobDetails() {
                     <IconButton
                       size="small"
                       onClick={() => handleScreenCandidate(candidate.job_id, candidate.id)}
-                      disabled={!candidate.phone || candidate.screening_score != null}
+                      disabled={!candidate.phone || candidate.screening_score != null || candidate.screening_in_progress}
                       aria-label={`Screen ${candidate.name}`}
                       color="primary"
                     >
-                      <PhoneIcon />
+                      {candidate.screening_in_progress 
+                        ? <CircularProgress size={18} /> 
+                        : <PhoneIcon />
+                      }
                     </IconButton>
                     <IconButton
                       size="small"
