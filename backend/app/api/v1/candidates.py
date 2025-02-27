@@ -103,7 +103,7 @@ async def remove_candidate(
         logger.error(f"Error deleting candidate: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/{job_id}/candidates/{candidate_id}/voice-screen")
+@router.post("/{job_id}/{candidate_id}/voice-screen")
 async def screen_candidate_with_voice(
     job_id: str,
     candidate_id: str,

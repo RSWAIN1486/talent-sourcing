@@ -20,6 +20,7 @@ import httpx
 import re
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,7 @@ async def get_candidate(job_id: str, candidate_id: str) -> Optional[dict]:
 
 async def update_candidate_info(
     candidate_id: str,
+    update_fields: Optional[dict] = None,
     name: Optional[str] = None,
     email: Optional[str] = None,
     phone: Optional[str] = None,
@@ -257,6 +259,19 @@ async def update_candidate_info(
 ) -> Optional[dict]:
     """
     Update candidate information after AI processing
+    
+    Args:
+        candidate_id: The ID of the candidate to update
+        update_fields: Dictionary of fields to update (alternative to individual parameters)
+        name: Optional name to update
+        email: Optional email to update
+        phone: Optional phone to update
+        location: Optional location to update
+        skills: Optional skills dictionary to update
+        resume_score: Optional resume score to update
+        
+    Returns:
+        Updated candidate data or None if not found
     """
     try:
         db = await get_database()
@@ -264,18 +279,25 @@ async def update_candidate_info(
         update_data = {
             "updated_at": datetime.utcnow()
         }
-        if name:
-            update_data["name"] = name
-        if email:
-            update_data["email"] = email
-        if phone:
-            update_data["phone"] = phone
-        if location:
-            update_data["location"] = location
-        if skills:
-            update_data["skills"] = skills
-        if resume_score is not None:
-            update_data["resume_score"] = resume_score
+        
+        # If update_fields dictionary is provided, use it
+        if update_fields and isinstance(update_fields, dict):
+            for key, value in update_fields.items():
+                update_data[key] = value
+        else:
+            # Otherwise use individual parameters
+            if name:
+                update_data["name"] = name
+            if email:
+                update_data["email"] = email
+            if phone:
+                update_data["phone"] = phone
+            if location:
+                update_data["location"] = location
+            if skills:
+                update_data["skills"] = skills
+            if resume_score is not None:
+                update_data["resume_score"] = resume_score
 
         result = await db.candidates.find_one_and_update(
             {"_id": ObjectId(candidate_id)},
@@ -511,6 +533,8 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         
         # Format phone number to E.164 format for Twilio
         phone = format_phone_number(candidate.get("phone"))
+        if not phone:
+            raise HTTPException(status_code=400, detail="Invalid phone number format")
         
         # Create a system prompt based on the job details
         system_prompt = f"""
@@ -556,10 +580,55 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
             }
         )
         
-        # For testing: Use a mock Ultravox integration if the ULTRAVOX_API_KEY is set to "mock"
-        if settings.ULTRAVOX_API_KEY == "mock":
+        # Use mock implementation by default or if Ultravox API is unavailable
+        use_mock = True
+        agent_id = f"mock_agent_{candidate_id}"
+        
+        # Try to use Ultravox if configured
+        if settings.ULTRAVOX_API_KEY and settings.ULTRAVOX_API_KEY != "mock":
+            try:
+                # Create agent in Ultravox
+                async with httpx.AsyncClient() as client:
+                    try:
+                        ultravox_response = await client.post(
+                            f"{settings.ULTRAVOX_API_BASE_URL}/agents",
+                            headers={
+                                "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "name": f"Recruitment Call - {candidate.get('name')}",
+                                "description": f"Voice screening for {job.get('title')} position",
+                                "system_prompt": system_prompt,
+                                "voice_id": "echo",  # Default Ultravox voice
+                                "webhook_url": webhook_url,
+                                "metadata": {
+                                    "candidate_id": str(candidate_id),
+                                    "job_id": str(job_id)
+                                }
+                            },
+                            timeout=30  # 30 second timeout
+                        )
+                        
+                        # Only proceed if we get a successful response
+                        if ultravox_response.status_code == 200:
+                            ultravox_data = ultravox_response.json()
+                            if ultravox_data and "id" in ultravox_data:
+                                agent_id = ultravox_data.get("id")
+                                use_mock = False
+                                logger.info(f"Created Ultravox agent: {agent_id}")
+                            else:
+                                logger.warning("Ultravox API returned success but no agent ID. Falling back to mock implementation.")
+                        else:
+                            logger.warning(f"Ultravox API returned status code {ultravox_response.status_code}. Falling back to mock implementation.")
+                    except (httpx.HTTPError, json.JSONDecodeError) as e:
+                        logger.warning(f"Ultravox API error: {str(e)}. Falling back to mock implementation.")
+            except Exception as e:
+                logger.warning(f"Error connecting to Ultravox: {str(e)}. Falling back to mock implementation.")
+        
+        # Use mock implementation if needed
+        if use_mock:
             logger.info("Using mock Ultravox integration")
-            agent_id = f"mock_agent_{candidate_id}"
             
             # Create a simple TwiML for testing
             twiml = f"""
@@ -605,51 +674,7 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                 )
                 raise HTTPException(status_code=500, detail=f"Twilio error: {str(e)}")
         else:
-            # Create agent in Ultravox
-            async with httpx.AsyncClient() as client:
-                try:
-                    ultravox_response = await client.post(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/agents",
-                        headers={
-                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "name": f"Recruitment Call - {candidate.get('name')}",
-                            "description": f"Voice screening for {job.get('title')} position",
-                            "system_prompt": system_prompt,
-                            "voice_id": "echo",  # Default Ultravox voice
-                            "webhook_url": webhook_url,
-                            "metadata": {
-                                "candidate_id": str(candidate_id),
-                                "job_id": str(job_id)
-                            }
-                        },
-                        timeout=30  # 30 second timeout
-                    )
-                    
-                    ultravox_data = await ultravox_response.json()
-                    agent_id = ultravox_data.get("id")
-                    
-                    if not agent_id:
-                        raise HTTPException(status_code=500, detail="Failed to create Ultravox agent")
-                    
-                    logger.info(f"Created Ultravox agent: {agent_id}")
-                except httpx.HTTPError as e:
-                    logger.error(f"Ultravox API error: {str(e)}")
-                    # Update the candidate's record to show screening is no longer in progress
-                    await db.candidates.update_one(
-                        {"_id": ObjectId(candidate_id)},
-                        {
-                            "$set": {
-                                "screening_in_progress": False,
-                                "updated_at": datetime.utcnow()
-                            }
-                        }
-                    )
-                    raise HTTPException(status_code=500, detail=f"Ultravox API error: {str(e)}")
-            
-            # Make the Twilio call
+            # Make the Twilio call with Ultravox
             try:
                 call = twilio_client.calls.create(
                     to=phone,

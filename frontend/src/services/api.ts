@@ -245,7 +245,7 @@ export const jobsApi = {
     try {
       console.log(`Initiating voice screening for job: ${jobId}, candidate: ${candidateId}`);
       const response = await api.post<{status: string, call_id: string}>(
-        `/candidates/${jobId}/candidates/${candidateId}/voice-screen`
+        `/candidates/${jobId}/${candidateId}/voice-screen`
       );
       return response.data;
     } catch (error: any) {

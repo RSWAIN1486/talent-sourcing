@@ -25,11 +25,11 @@ async def initiate_voice_screening(
         raise HTTPException(status_code=404, detail="Candidate not found")
     
     # Check if the candidate has a phone number
-    if not candidate.phone:
+    if not candidate.get("phone"):
         raise HTTPException(status_code=400, detail="Candidate does not have a phone number")
     
     # Format the phone number to E.164 format
-    formatted_phone = format_phone_number(candidate.phone)
+    formatted_phone = format_phone_number(candidate.get("phone"))
     if not formatted_phone:
         raise HTTPException(
             status_code=400, 
@@ -37,7 +37,7 @@ async def initiate_voice_screening(
         )
     
     # Check if a screening is already in progress
-    if getattr(candidate, "screening_in_progress", False):
+    if candidate.get("screening_in_progress", False):
         raise HTTPException(
             status_code=400,
             detail="A screening call is already in progress for this candidate"
@@ -71,12 +71,12 @@ async def get_screening_status(
     # Return the screening status
     return {
         "candidate_id": candidate_id,
-        "screening_in_progress": getattr(candidate, "screening_in_progress", False),
-        "screening_score": getattr(candidate, "screening_score", None),
-        "screening_summary": getattr(candidate, "screening_summary", None),
-        "notice_period": getattr(candidate, "notice_period", None),
-        "current_compensation": getattr(candidate, "current_compensation", None),
-        "expected_compensation": getattr(candidate, "expected_compensation", None)
+        "screening_in_progress": candidate.get("screening_in_progress", False),
+        "screening_score": candidate.get("screening_score", None),
+        "screening_summary": candidate.get("screening_summary", None),
+        "notice_period": candidate.get("notice_period", None),
+        "current_compensation": candidate.get("current_compensation", None),
+        "expected_compensation": candidate.get("expected_compensation", None)
     }
 
 # Webhook routes - these don't require authentication as they're called by Twilio
