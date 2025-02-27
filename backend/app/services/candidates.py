@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Optional
 from fastapi import UploadFile, HTTPException
 import os
@@ -93,8 +93,8 @@ async def process_pdf_file(file_content: bytes, filename: str, job_id: str, crea
                 "screening_score": None,
                 "screening_summary": None,
                 "created_by_id": ObjectId(created_by.id),
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC)
             }
             
             logger.info(f"Storing candidate with resume file ID: {file_id}")
@@ -208,8 +208,10 @@ async def get_candidates(job_id: str, skip: int = 0, limit: int = 10) -> List[di
         logger.info(f"Querying candidates with job_id: {ObjectId(job_id)}")
         
         db = await get_database()
-
-        cursor = db.candidates.find({"job_id": ObjectId(job_id)}).skip(skip).limit(limit)
+        
+        # Get cursor and apply pagination
+        cursor = db.candidates.find({"job_id": ObjectId(job_id)})
+        cursor = cursor.skip(skip).limit(limit)
         candidates = await cursor.to_list(length=limit)
         
         logger.info(f"Found {len(candidates)} candidates")
@@ -277,7 +279,7 @@ async def update_candidate_info(
         db = await get_database()
 
         update_data = {
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(UTC)
         }
         
         # If update_fields dictionary is provided, use it
@@ -468,8 +470,8 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
                 "resume_score": analysis_result.get("score", 0),
                 "screening_score": None,
                 "screening_summary": None,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC)
             }
 
             result = await db.candidates.insert_one(candidate)
@@ -484,7 +486,7 @@ async def create_candidate(job_id: str, file: UploadFile) -> dict:
                         "resume_screened": 1
                     },
                     "$set": {
-                        "updated_at": datetime.utcnow()
+                        "updated_at": datetime.now(UTC)
                     }
                 }
             )
@@ -575,13 +577,13 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
             {
                 "$set": {
                     "screening_in_progress": True,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }
             }
         )
         
         # Use mock implementation by default or if Ultravox API is unavailable
-        use_mock = True
+        use_mock = False
         agent_id = f"mock_agent_{candidate_id}"
         
         # Try to use Ultravox if configured
@@ -590,41 +592,63 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                 # Create agent in Ultravox
                 async with httpx.AsyncClient() as client:
                     try:
+                        # Log the API request details
+                        ultravox_payload = {
+                            "systemPrompt": system_prompt,
+                            "temperature": 0.7,
+                            "model": "fixie-ai/ultravox",
+                            "voice": "echo",
+                            "medium": {
+                                "twilio": {}
+                            },
+                            "recordingEnabled": True,
+                            "firstSpeaker": "FIRST_SPEAKER_AGENT"
+                        }
+                        
+                        logger.info(f"Making Ultravox API call to: {settings.ULTRAVOX_API_BASE_URL}/api/calls")
+                        logger.info(f"Request payload: {json.dumps(ultravox_payload)}")
+                        
                         ultravox_response = await client.post(
-                            f"{settings.ULTRAVOX_API_BASE_URL}/agents",
+                            f"{settings.ULTRAVOX_API_BASE_URL}/api/calls",
                             headers={
-                                "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                                "X-API-Key": settings.ULTRAVOX_API_KEY,
                                 "Content-Type": "application/json"
                             },
-                            json={
-                                "name": f"Recruitment Call - {candidate.get('name')}",
-                                "description": f"Voice screening for {job.get('title')} position",
-                                "system_prompt": system_prompt,
-                                "voice_id": "echo",  # Default Ultravox voice
-                                "webhook_url": webhook_url,
-                                "metadata": {
-                                    "candidate_id": str(candidate_id),
-                                    "job_id": str(job_id)
-                                }
-                            },
-                            timeout=30  # 30 second timeout
+                            json=ultravox_payload,
+                            timeout=30.0
                         )
                         
+                        # Log the response status
+                        logger.info(f"Ultravox API response status: {ultravox_response.status_code}")
+                        
                         # Only proceed if we get a successful response
-                        if ultravox_response.status_code == 200:
-                            ultravox_data = ultravox_response.json()
-                            if ultravox_data and "id" in ultravox_data:
-                                agent_id = ultravox_data.get("id")
-                                use_mock = False
-                                logger.info(f"Created Ultravox agent: {agent_id}")
-                            else:
-                                logger.warning("Ultravox API returned success but no agent ID. Falling back to mock implementation.")
+                        if ultravox_response.status_code in (200, 201):  # Check for both 200 OK and 201 Created
+                            try:
+                                ultravox_data = await ultravox_response.json()
+                                logger.info(f"Ultravox API response body: {json.dumps(ultravox_data)}")
+                                
+                                if ultravox_data and "callId" in ultravox_data:  # API returns callId, not id
+                                    agent_id = ultravox_data.get("callId")
+                                    join_url = ultravox_data.get("joinUrl")
+                                    use_mock = False
+                                    logger.info(f"Created Ultravox call: {agent_id}, join URL: {join_url}")
+                                else:
+                                    logger.warning("Ultravox API returned success but no callId. Falling back to mock implementation.")
+                                    use_mock = True
+                            except json.JSONDecodeError:
+                                response_text = await ultravox_response.text()
+                                logger.error(f"Failed to parse JSON response: {response_text}")
+                                use_mock = True
                         else:
-                            logger.warning(f"Ultravox API returned status code {ultravox_response.status_code}. Falling back to mock implementation.")
+                            response_text = await ultravox_response.text()
+                            logger.warning(f"Ultravox API returned status code {ultravox_response.status_code}. Response: {response_text}. Falling back to mock implementation.")
+                            use_mock = True
                     except (httpx.HTTPError, json.JSONDecodeError) as e:
                         logger.warning(f"Ultravox API error: {str(e)}. Falling back to mock implementation.")
+                        use_mock = True
             except Exception as e:
                 logger.warning(f"Error connecting to Ultravox: {str(e)}. Falling back to mock implementation.")
+                use_mock = True
         
         # Use mock implementation if needed
         if use_mock:
@@ -668,7 +692,7 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                     {
                         "$set": {
                             "screening_in_progress": False,
-                            "updated_at": datetime.utcnow()
+                            "updated_at": datetime.now(UTC)
                         }
                     }
                 )
@@ -679,14 +703,14 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                 call = twilio_client.calls.create(
                     to=phone,
                     from_=settings.TWILIO_PHONE_NUMBER,
-                    url=f"{settings.ULTRAVOX_API_BASE_URL}/twilio/voice?agent_id={agent_id}",
+                    url=join_url,  # Use the joinUrl from Ultravox response
                     status_callback=webhook_url,
                     status_callback_event=['completed'],
                     status_callback_method='POST'
                 )
                 
                 call_id = call.sid
-                logger.info(f"Initiated Twilio call: {call_id}")
+                logger.info(f"Initiated Twilio call with Ultravox: {call_id}")
             except TwilioRestException as e:
                 logger.error(f"Twilio error: {str(e)}")
                 # Update the candidate's record to show screening is no longer in progress
@@ -695,7 +719,7 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                     {
                         "$set": {
                             "screening_in_progress": False,
-                            "updated_at": datetime.utcnow()
+                            "updated_at": datetime.now(UTC)
                         }
                     }
                 )
@@ -703,21 +727,21 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         
         # Store the call info
         await db.call_sessions.insert_one({
-            "call_id": call_id,
-            "agent_id": agent_id,
+            "call_id": call_id,  # This is the Twilio call SID
+            "ultravox_call_id": agent_id if not use_mock else None,  # This is the Ultravox call ID
             "candidate_id": ObjectId(candidate_id),
             "job_id": ObjectId(job_id),
             "phone_number": phone,
             "system_prompt": system_prompt,
             "status": "initiated",
             "created_by_id": ObjectId(current_user.id if hasattr(current_user, 'id') else current_user.get('id')),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC)
         })
         
         return {
             "call_id": call_id,
-            "agent_id": agent_id,
+            "ultravox_call_id": agent_id if not use_mock else None,
             "status": "initiated"
         }
     except HTTPException:
@@ -752,10 +776,10 @@ async def process_call_results(call_data: dict) -> dict:
             return {"status": "error", "message": f"Call session not found for call_id: {call_id}"}
         
         candidate_id = call_session.get("candidate_id")
-        agent_id = call_session.get("agent_id")
+        ultravox_call_id = call_session.get("ultravox_call_id") or call_session.get("agent_id")
         
         # For testing: Generate mock data if using mock Ultravox integration
-        if agent_id and isinstance(agent_id, str) and agent_id.startswith("mock_agent_"):
+        if not ultravox_call_id or (isinstance(ultravox_call_id, str) and ultravox_call_id.startswith("mock_agent_")):
             logger.info("Using mock call results")
             
             # Generate mock call results
@@ -771,9 +795,9 @@ async def process_call_results(call_data: dict) -> dict:
             async with httpx.AsyncClient() as client:
                 try:
                     ultravox_response = await client.get(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/calls/{call_id}",
+                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{call_id}",
                         headers={
-                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "X-API-Key": settings.ULTRAVOX_API_KEY,
                             "Content-Type": "application/json"
                         },
                         timeout=30
@@ -782,45 +806,41 @@ async def process_call_results(call_data: dict) -> dict:
                     ultravox_response.raise_for_status()
                     call_details = await ultravox_response.json()
                     
-                    # Get transcript
+                    # Get transcript - update endpoint to list call messages
                     transcript_response = await client.get(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/calls/{call_id}/transcript",
+                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{call_id}/messages",
                         headers={
-                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
+                            "X-API-Key": settings.ULTRAVOX_API_KEY,
                             "Content-Type": "application/json"
                         },
                         timeout=30
                     )
                     
                     transcript_response.raise_for_status()
-                    transcript_data = await transcript_response.json()
+                    messages_data = await transcript_response.json()
                     
-                    # Get analysis (this would be a custom endpoint that Ultravox would provide)
-                    # For now, we'll make a general request and adjust as needed
-                    analysis_response = await client.get(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/agents/{agent_id}/analysis?call_id={call_id}",
-                        headers={
-                            "Authorization": f"Bearer {settings.ULTRAVOX_API_KEY}",
-                            "Content-Type": "application/json"
-                        },
-                        timeout=30
-                    )
+                    # Extract transcript from messages
+                    transcript = ""
+                    for message in messages_data.get("messages", []):
+                        role = "AI" if message.get("role") == "MESSAGE_ROLE_AGENT" else "User"
+                        text = message.get("text", "")
+                        if text:
+                            transcript += f"{role}: {text}\n"
                     
-                    analysis_response.raise_for_status()
-                    analysis_data = await analysis_response.json()
+                    # Extract summary from call details
+                    screening_summary = call_details.get("summary", "No summary available")
                     
-                    # Extract the needed fields from the response
-                    # Note: These fields might need to be adjusted based on actual Ultravox API response
-                    transcript = transcript_data.get("transcript", "No transcript available")
+                    # These fields would need to be extracted from the call summary using AI
+                    # For now, use placeholders or get them from the call details
+                    screening_score = 70  # Default score
+                    notice_period = "Not specified"
+                    current_compensation = "Not specified"
+                    expected_compensation = "Not specified"
                     
-                    # We'll need to extract these fields from the analysis or transcript
-                    # The exact format will depend on Ultravox's API
-                    screening_score = analysis_data.get("screening_score", 70)  # Default if not available
-                    notice_period = analysis_data.get("notice_period", "Not specified")
-                    current_compensation = analysis_data.get("current_compensation", "Not specified")
-                    expected_compensation = analysis_data.get("expected_compensation", "Not specified")
-                    screening_summary = analysis_data.get("summary", "No summary available")
-                    
+                    # If there's a summary, try to extract these details
+                    if screening_summary and screening_summary != "No summary available":
+                        # In a real implementation, we would use AI to extract these details from the summary
+                        pass
                 except httpx.HTTPError as e:
                     logger.error(f"Error fetching call data from Ultravox: {str(e)}")
                     # If we can't get the data, we'll still mark the call as completed
@@ -844,7 +864,7 @@ async def process_call_results(call_data: dict) -> dict:
                     "current_compensation": current_compensation,
                     "expected_compensation": expected_compensation,
                     "screening_in_progress": False,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }
             }
         )
@@ -858,7 +878,7 @@ async def process_call_results(call_data: dict) -> dict:
                     "phone_screened": 1
                 },
                 "$set": {
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }
             }
         )
@@ -876,7 +896,7 @@ async def process_call_results(call_data: dict) -> dict:
                         "current_compensation": current_compensation,
                         "expected_compensation": expected_compensation
                     },
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }
             }
         )

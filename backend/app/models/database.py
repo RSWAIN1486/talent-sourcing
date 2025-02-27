@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Dict, Any
 from bson import ObjectId
 import logging
@@ -13,8 +13,8 @@ class User:
         self.full_name = data.get("full_name", "")
         self.is_active = data.get("is_active", True)
         self.is_superuser = data.get("is_superuser", False)
-        self.created_at = data.get("created_at", datetime.utcnow())
-        self.updated_at = data.get("updated_at", datetime.utcnow())
+        self.created_at = data.get("created_at", datetime.now(UTC))
+        self.updated_at = data.get("updated_at", datetime.now(UTC))
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -51,8 +51,8 @@ class CandidateResponse:
         self.current_compensation = data.get("current_compensation")
         self.expected_compensation = data.get("expected_compensation")
         self.created_by_id = str(data.get("created_by_id")) if data.get("created_by_id") else None
-        self.created_at = data.get("created_at", datetime.utcnow())
-        self.updated_at = data.get("updated_at", datetime.utcnow())
+        self.created_at = data.get("created_at", datetime.now(UTC))
+        self.updated_at = data.get("updated_at", datetime.now(UTC))
 
     @classmethod
     def model_validate(cls, data: dict) -> 'CandidateResponse':
@@ -70,8 +70,8 @@ def create_user(email: str, hashed_password: str, full_name: str) -> dict:
         "full_name": full_name,
         "is_active": True,
         "is_superuser": False,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     }
 
 def create_job(
@@ -96,8 +96,8 @@ def create_job(
             "resume_screened": 0,
             "phone_screened": 0,
             "created_by_id": ObjectId(created_by["_id"]),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC)
         }
         logger.info(f"Created job document: {job}")
         return job
@@ -135,8 +135,8 @@ def create_candidate(
         "current_compensation": None,
         "expected_compensation": None,
         "created_by_id": ObjectId(created_by_id) if created_by_id else None,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     }
 
 def serialize_user(user: dict) -> dict:
