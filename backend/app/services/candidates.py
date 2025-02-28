@@ -21,6 +21,7 @@ import re
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import json
+from twilio.twiml.voice_response import Connect, VoiceResponse, Say, Stream
 
 logger = logging.getLogger(__name__)
 
@@ -597,12 +598,12 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                             "systemPrompt": system_prompt,
                             "temperature": 0.7,
                             "model": "fixie-ai/ultravox",
-                            "voice": "echo",
+                            "voice": "ebae2397-0ba1-4222-9d5b-5313ddeb04b5",
                             "medium": {
                                 "twilio": {}
                             },
                             "recordingEnabled": True,
-                            "firstSpeaker": "FIRST_SPEAKER_AGENT"
+                            "firstSpeaker": "FIRST_SPEAKER_USER"
                         }
                         
                         logger.info(f"Making Ultravox API call to: {settings.ULTRAVOX_API_BASE_URL}/api/calls")
@@ -624,7 +625,7 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                         # Only proceed if we get a successful response
                         if ultravox_response.status_code in (200, 201):  # Check for both 200 OK and 201 Created
                             try:
-                                ultravox_data = await ultravox_response.json()
+                                ultravox_data = ultravox_response.json()
                                 logger.info(f"Ultravox API response body: {json.dumps(ultravox_data)}")
                                 
                                 if ultravox_data and "callId" in ultravox_data:  # API returns callId, not id
@@ -700,14 +701,21 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         else:
             # Make the Twilio call with Ultravox
             try:
-                call = twilio_client.calls.create(
-                    to=phone,
-                    from_=settings.TWILIO_PHONE_NUMBER,
-                    url=join_url,  # Use the joinUrl from Ultravox response
-                    status_callback=webhook_url,
-                    status_callback_event=['completed'],
-                    status_callback_method='POST'
+
+                response = VoiceResponse()
+                connect = Connect()
+                connect.stream(url=join_url)
+                response.append(connect)
+                response.say(
+                    'This TwiML instruction is unreachable unless the Stream is ended by your WebSocket server.'
                 )
+
+                print(response)
+                call =  twilio_client.calls.create(
+                        to=phone,
+                        from_=settings.TWILIO_PHONE_NUMBER,
+                        twiml=response
+                    )
                 
                 call_id = call.sid
                 logger.info(f"Initiated Twilio call with Ultravox: {call_id}")
