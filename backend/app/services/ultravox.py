@@ -3,6 +3,7 @@ import httpx
 import json
 from typing import Dict, Any, Optional
 from app.core.config import settings
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -235,25 +236,78 @@ async def _simulate_ultravox_response(transcript: str) -> Dict[str, Any]:
     # Cap the score at 100
     score = min(score, 100)
     
-    # Extract notice period if mentioned
-    notice_period = "30 days"  # Default
-    if "two weeks" in transcript.lower() or "14 days" in transcript.lower():
-        notice_period = "14 days"
-    elif "one month" in transcript.lower() or "30 days" in transcript.lower():
-        notice_period = "30 days"
-    elif "immediate" in transcript.lower() or "right away" in transcript.lower():
-        notice_period = "Immediate"
+    # Extract notice period if mentioned in the transcript
+    notice_period = None
+    notice_matches = [
+        (r"two weeks", "2 weeks"),
+        (r"14 days", "2 weeks"),
+        (r"one month", "1 month"), 
+        (r"30 days", "1 month"),
+        (r"three months", "3 months"),
+        (r"90 days", "3 months"),
+        (r"immediate", "Immediate"),
+        (r"right away", "Immediate"),
+        (r"no notice", "Immediate")
+    ]
     
-    # Extract compensation information if mentioned
-    current_comp = "$90,000"  # Default
-    expected_comp = "$110,000"  # Default
+    for pattern, value in notice_matches:
+        if re.search(pattern, transcript.lower()):
+            notice_period = value
+            break
     
-    # In a real implementation, we would use more sophisticated NLP to extract this information
+    if notice_period is None:
+        notice_period = "Not specified"
+    
+    # Extract current compensation if mentioned in the transcript
+    current_comp = None
+    salary_patterns = [
+        r"\$(\d{2,3}(,\d{3})*(\.\d+)?)",  # $XX,XXX or $XXX,XXX
+        r"(\d{2,3}(,\d{3})*(\.\d+)?)\s+dollars",  # XX,XXX dollars
+        r"(\d{2,3}(,\d{3})*k)",  # XXk or XXXk
+        r"(\d{2,3}(,\d{3})*)\s+k",  # XX k or XXX k
+        r"(\d{2,3}(,\d{3})*)\s+thousand",  # XX thousand
+    ]
+    
+    for pattern in salary_patterns:
+        match = re.search(f"current.*?{pattern}", transcript.lower()) or \
+                re.search(f"making.*?{pattern}", transcript.lower()) or \
+                re.search(f"earn.*?{pattern}", transcript.lower())
+        if match:
+            current_comp = match.group(1)
+            if not current_comp.startswith("$"):
+                current_comp = f"${current_comp}"
+            break
+    
+    if current_comp is None:
+        current_comp = "$90,000"  # Default
+    
+    # Extract expected compensation if mentioned in the transcript
+    expected_comp = None
+    for pattern in salary_patterns:
+        match = re.search(f"expect.*?{pattern}", transcript.lower()) or \
+                re.search(f"looking for.*?{pattern}", transcript.lower()) or \
+                re.search(f"target.*?{pattern}", transcript.lower())
+        if match:
+            expected_comp = match.group(1)
+            if not expected_comp.startswith("$"):
+                expected_comp = f"${expected_comp}"
+            break
+    
+    if expected_comp is None:
+        expected_comp = "$110,000"  # Default
+    
+    # Create a more detailed summary based on the information extracted
+    summary = (
+        f"The candidate has relevant experience and seems to be a good fit for the role. "
+        f"They have a notice period of {notice_period}. "
+        f"Their current compensation is {current_comp} and they're expecting {expected_comp}. "
+        f"They articulate their skills well and have the necessary qualifications for the position."
+    )
     
     return {
         "success": True,
         "screening_score": score,
-        "screening_summary": "The candidate has relevant experience and seems to be a good fit for the role. They articulate their skills well and have the necessary qualifications for the position.",
+        "screening_summary": summary,
         "notice_period": notice_period,
         "current_compensation": current_comp,
         "expected_compensation": expected_comp

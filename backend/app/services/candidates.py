@@ -838,27 +838,53 @@ async def process_call_results(call_data: dict) -> dict:
                     # Extract summary from call details
                     screening_summary = call_details.get("summary", "No summary available")
                     
-                    # These fields would need to be extracted from the call summary using AI
-                    # For now, use placeholders or get them from the call details
-                    screening_score = 70  # Default score
-                    notice_period = "Not specified"
-                    current_compensation = "Not specified"
-                    expected_compensation = "Not specified"
+                    # Extract other fields from call_details, with default values
+                    screening_score = call_details.get("score", 70)
+                    notice_period = call_details.get("notice_period", "Not specified")
+                    current_compensation = call_details.get("current_compensation", "Not specified")
+                    expected_compensation = call_details.get("expected_compensation", "Not specified")
                     
-                    # If there's a summary, try to extract these details
+                    # If these fields aren't provided directly, try to extract them from the summary
                     if screening_summary and screening_summary != "No summary available":
-                        # In a real implementation, we would use AI to extract these details from the summary
-                        pass
+                        logger.info(f"Analyzing call summary for key data points: {screening_summary[:100]}...")
+                        
+                        # Process the summary to extract key information if not already provided
+                        try:
+                            # Use AI to extract these details from the summary
+                            # For now, use regex pattern matching as a simple approach
+                            import re
+                            
+                            # Extract notice period if not already provided
+                            if notice_period == "Not specified":
+                                notice_match = re.search(r'notice\s+period[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
+                                if notice_match:
+                                    notice_period = notice_match.group(1).strip()
+                            
+                            # Extract current compensation if not already provided
+                            if current_compensation == "Not specified":
+                                current_comp_match = re.search(r'current\s+compensation[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
+                                if current_comp_match:
+                                    current_compensation = current_comp_match.group(1).strip()
+                                else:
+                                    # Try alternative wording
+                                    current_comp_match = re.search(r'currently\s+making[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
+                                    if current_comp_match:
+                                        current_compensation = current_comp_match.group(1).strip()
+                            
+                            # Extract expected compensation if not already provided
+                            if expected_compensation == "Not specified":
+                                expected_comp_match = re.search(r'expected\s+compensation[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
+                                if expected_comp_match:
+                                    expected_compensation = expected_comp_match.group(1).strip()
+                                else:
+                                    # Try alternative wording
+                                    expected_comp_match = re.search(r'expecting[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
+                                    if expected_comp_match:
+                                        expected_compensation = expected_comp_match.group(1).strip()
+                        except Exception as e:
+                            logger.error(f"Error extracting details from summary: {e}")
                 except httpx.HTTPError as e:
                     logger.error(f"Error fetching call data from Ultravox: {str(e)}")
-                    # If we can't get the data, we'll still mark the call as completed
-                    # but with error information
-                    transcript = "Error retrieving transcript"
-                    screening_score = None
-                    notice_period = "Error retrieving data"
-                    current_compensation = "Error retrieving data"
-                    expected_compensation = "Error retrieving data"
-                    screening_summary = f"Error retrieving call data: {str(e)}"
         
         # Update the candidate with the call results
         await db.candidates.update_one(

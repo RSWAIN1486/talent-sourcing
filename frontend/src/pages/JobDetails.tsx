@@ -291,13 +291,16 @@ export default function JobDetails() {
         <Table size="medium">
           <TableHead>
             <TableRow>
-              <TableCell width="15%">Name</TableCell>
-              <TableCell width="15%">Email</TableCell>
-              <TableCell width="12%">Phone</TableCell>
-              <TableCell width="8%">Location</TableCell>
-              <TableCell width="10%">Resume Score</TableCell>
-              <TableCell width="10%">Screen Score</TableCell>
-              <TableCell width="20%">Top Skills</TableCell>
+              <TableCell width="12%">Name</TableCell>
+              <TableCell width="12%">Email</TableCell>
+              <TableCell width="8%">Phone</TableCell>
+              <TableCell width="7%">Location</TableCell>
+              <TableCell width="7%">Resume Score</TableCell>
+              <TableCell width="7%">Screen Score</TableCell>
+              <TableCell width="7%">Notice Period</TableCell>
+              <TableCell width="8%">Current Comp.</TableCell>
+              <TableCell width="8%">Expected Comp.</TableCell>
+              <TableCell width="14%">Top Skills</TableCell>
               <TableCell width="10%">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -314,14 +317,7 @@ export default function JobDetails() {
                 <TableCell>
                   {candidate.screening_score != null 
                     ? (
-                      <Tooltip title={
-                        candidate.screening_summary ? 
-                        `Summary: ${candidate.screening_summary}` +
-                        (candidate.notice_period ? `\nNotice Period: ${candidate.notice_period}` : '') +
-                        (candidate.current_compensation ? `\nCurrent: ${candidate.current_compensation}` : '') +
-                        (candidate.expected_compensation ? `\nExpected: ${candidate.expected_compensation}` : '')
-                        : 'No screening summary available'
-                      }>
+                      <Tooltip title={candidate.screening_summary || 'No screening summary available'}>
                         <span>{candidate.screening_score.toFixed(1)}</span>
                       </Tooltip>
                     ) 
@@ -331,6 +327,15 @@ export default function JobDetails() {
                         <span>In progress</span>
                       </Box>
                     : 'Not Screened'}
+                </TableCell>
+                <TableCell>
+                  {candidate.notice_period || '-'}
+                </TableCell>
+                <TableCell>
+                  {candidate.current_compensation || '-'}
+                </TableCell>
+                <TableCell>
+                  {candidate.expected_compensation || '-'}
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1} flexWrap="wrap">
