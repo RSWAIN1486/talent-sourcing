@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.mongodb import get_database, get_gridfs
 from app.models.database import User
 from app.models.database import serialize_candidate
-from app.services.ai import extract_resume_info, analyze_resume
+from app.services.ai import extract_resume_info, analyze_resume, analyze_call_transcript
 import logging
 from io import BytesIO
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
@@ -424,8 +424,12 @@ def serialize_candidate(candidate: dict) -> dict:
             "screening_summary": candidate["screening_summary"],
             "created_by_id": str(candidate["created_by_id"]) if candidate.get("created_by_id") else None,
             "created_at": candidate["created_at"].isoformat(),
-            "updated_at": candidate["updated_at"].isoformat()
-        }
+            "updated_at": candidate["updated_at"].isoformat(),
+            "screening_in_progress": candidate.get("screening_in_progress", False),
+            "current_compensation": candidate.get("current_compensation", None),
+            "expected_compensation": candidate.get("expected_compensation", None),
+            "notice_period": candidate.get("notice_period", None),
+            }
     except Exception as e:
         logger.error(f"Error serializing candidate {candidate.get('_id', 'unknown')}: {str(e)}")
         logger.error(f"Candidate data: {candidate}")
@@ -714,7 +718,10 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                 call =  twilio_client.calls.create(
                         to=phone,
                         from_=settings.TWILIO_PHONE_NUMBER,
-                        twiml=response
+                        twiml=response,
+                        status_callback=webhook_url,
+                        status_callback_event=['completed'],
+                        status_callback_method='POST'
                     )
                 
                 call_id = call.sid
@@ -759,9 +766,7 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         raise HTTPException(status_code=500, detail=str(e))
 
 async def process_call_results(call_data: dict) -> dict:
-    """
-    Process the results of a completed voice screening call
-    """
+    """Process call results from Ultravox/Twilio"""
     try:
         logger.info(f"Processing call results: {call_data}")
         
@@ -803,7 +808,7 @@ async def process_call_results(call_data: dict) -> dict:
             async with httpx.AsyncClient() as client:
                 try:
                     ultravox_response = await client.get(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{call_id}",
+                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{ultravox_call_id}",
                         headers={
                             "X-API-Key": settings.ULTRAVOX_API_KEY,
                             "Content-Type": "application/json"
@@ -812,11 +817,11 @@ async def process_call_results(call_data: dict) -> dict:
                     )
                     
                     ultravox_response.raise_for_status()
-                    call_details = await ultravox_response.json()
+                    call_details = ultravox_response.json()
                     
                     # Get transcript - update endpoint to list call messages
                     transcript_response = await client.get(
-                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{call_id}/messages",
+                        f"{settings.ULTRAVOX_API_BASE_URL}/api/calls/{ultravox_call_id}/messages",
                         headers={
                             "X-API-Key": settings.ULTRAVOX_API_KEY,
                             "Content-Type": "application/json"
@@ -825,7 +830,7 @@ async def process_call_results(call_data: dict) -> dict:
                     )
                     
                     transcript_response.raise_for_status()
-                    messages_data = await transcript_response.json()
+                    messages_data = transcript_response.json()
                     
                     # Extract transcript from messages
                     transcript = ""
@@ -835,70 +840,26 @@ async def process_call_results(call_data: dict) -> dict:
                         if text:
                             transcript += f"{role}: {text}\n"
                     
-                    # Extract summary from call details
+                    # Get summary from Ultravox
                     screening_summary = call_details.get("summary", "No summary available")
                     
-                    # Extract other fields from call_details, with default values
-                    screening_score = call_details.get("score", 70)
-                    notice_period = call_details.get("notice_period", "Not specified")
-                    current_compensation = call_details.get("current_compensation", "Not specified")
-                    expected_compensation = call_details.get("expected_compensation", "Not specified")
-                    
-                    # If these fields aren't provided directly, try to extract them from the summary
-                    if screening_summary and screening_summary != "No summary available":
-                        logger.info(f"Analyzing call summary for key data points: {screening_summary[:100]}...")
-                        
-                        # Process the summary to extract key information if not already provided
-                        try:
-                            # Use AI to extract these details from the summary
-                            # For now, use regex pattern matching as a simple approach
-                            import re
-                            
-                            # Extract notice period if not already provided
-                            if notice_period == "Not specified":
-                                notice_match = re.search(r'notice\s+period[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
-                                if notice_match:
-                                    notice_period = notice_match.group(1).strip()
-                            
-                            # Extract current compensation if not already provided
-                            if current_compensation == "Not specified":
-                                current_comp_match = re.search(r'current\s+compensation[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
-                                if current_comp_match:
-                                    current_compensation = current_comp_match.group(1).strip()
-                                else:
-                                    # Try alternative wording
-                                    current_comp_match = re.search(r'currently\s+making[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
-                                    if current_comp_match:
-                                        current_compensation = current_comp_match.group(1).strip()
-                            
-                            # Extract expected compensation if not already provided
-                            if expected_compensation == "Not specified":
-                                expected_comp_match = re.search(r'expected\s+compensation[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
-                                if expected_comp_match:
-                                    expected_compensation = expected_comp_match.group(1).strip()
-                                else:
-                                    # Try alternative wording
-                                    expected_comp_match = re.search(r'expecting[:\s]+([^\.]+)', screening_summary, re.IGNORECASE)
-                                    if expected_comp_match:
-                                        expected_compensation = expected_comp_match.group(1).strip()
-                        except Exception as e:
-                            logger.error(f"Error extracting details from summary: {e}")
-                except httpx.HTTPError as e:
-                    logger.error(f"Error fetching call data from Ultravox: {str(e)}")
-        
-        # Update the candidate with the call results
+                    # Use OpenAI to analyze the summary and extract structured data
+                    analysis_results = await analyze_call_transcript(screening_summary)
+                except Exception as e:
+                    logger.error(f"Error extracting details: {e}")
+                            # Update the candidate with the call results
         await db.candidates.update_one(
             {"_id": ObjectId(candidate_id)},
             {
                 "$set": {
-                    "screening_score": screening_score,
-                    "screening_summary": screening_summary,
-                    "call_transcript": transcript,
-                    "notice_period": notice_period,
-                    "current_compensation": current_compensation,
-                    "expected_compensation": expected_compensation,
-                    "screening_in_progress": False,
-                    "updated_at": datetime.now(UTC)
+                        "screening_in_progress": False,
+                        "call_transcript": transcript,  # Save the full transcript
+                        "screening_score": analysis_results.get("screening_score", 0),
+                        "screening_summary": screening_summary,  # Use Ultravox's summary
+                        "notice_period": analysis_results.get("notice_period", "Not specified"),
+                        "current_compensation": analysis_results.get("current_compensation", "Not specified"),
+                        "expected_compensation": analysis_results.get("expected_compensation", "Not specified"),
+                        "updated_at": datetime.now(UTC)
                 }
             }
         )
@@ -924,11 +885,11 @@ async def process_call_results(call_data: dict) -> dict:
                 "$set": {
                     "status": "completed",
                     "results": {
-                        "screening_score": screening_score,
+                        "screening_score": analysis_results.get("screening_score", 0),
                         "screening_summary": screening_summary,
-                        "notice_period": notice_period,
-                        "current_compensation": current_compensation,
-                        "expected_compensation": expected_compensation
+                        "notice_period": analysis_results.get("notice_period", "Not specified"),
+                        "current_compensation": analysis_results.get("current_compensation", "Not specified"),
+                        "expected_compensation": analysis_results.get("expected_compensation", "Not specified")
                     },
                     "updated_at": datetime.now(UTC)
                 }
@@ -936,11 +897,11 @@ async def process_call_results(call_data: dict) -> dict:
         )
         
         return {
-            "candidate_id": str(candidate_id),
-            "status": "success"
+            "success": True,
+            "call_id": call_id,
+            "status": "completed",
+            "screening_score": analysis_results.get("screening_score", 0)
         }
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error processing call results: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        logger.error(f"Error processing call results: {str(e)}", exc_info=True)
+        return {"success": False, "error": str(e)} 

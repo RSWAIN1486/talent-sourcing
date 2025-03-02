@@ -28,5 +28,8 @@ class CandidateResponse(BaseModel):
     created_by_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    current_compensation: Optional[str] = None
+    expected_compensation: Optional[str] = None
+    notice_period: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True) 

@@ -1,16 +1,16 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Body
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Body, Request
 from fastapi.responses import StreamingResponse
 from app.models.api import CandidateResponse
 from app.models.database import User
 from app.services.candidates import (
+    process_call_results,
     upload_resume,
     get_candidates,
     get_candidate,
     delete_candidate,
     get_resume_file,
-    voice_screen_candidate,
-    process_call_results
+    voice_screen_candidate
 )
 from app.api.deps import get_current_user
 import os
@@ -123,14 +123,53 @@ async def screen_candidate_with_voice(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/callback/call-complete")
-async def call_complete_webhook(call_data: dict = Body(...)):
+async def call_complete_callback(request: Request):
     """
-    Webhook endpoint for receiving call completion data
+    Handle Twilio call completion callback
+    
+    This endpoint receives form data from Twilio, not JSON
     """
     try:
-        logger.info(f"Received call completion data: {call_data}")
-        result = await process_call_results(call_data)
-        return {"status": "success", "candidate_id": result.get("candidate_id")}
+        # Parse the form data from Twilio
+        form_data = await request.form()
+        # Convert form data to dict
+        data = dict(form_data)
+        
+        logger.info(f"Received call completion callback: {data}")
+        
+        call_sid = data.get("CallSid")
+        call_status = data.get("CallStatus")
+        
+        if not call_sid or call_status != "completed":
+            return {"success": False, "error": "Invalid call data"}
+        
+        # Process the completed call
+        result = await process_call_results(data)
+        return result
     except Exception as e:
-        logger.error(f"Error processing call completion: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error processing call completion callback: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@router.post("/callback/call-status")
+async def call_status_callback(request: Request):
+    """
+    Handle Twilio call status callback
+    
+    This endpoint receives form data from Twilio, not JSON
+    """
+    try:
+        # Parse the form data from Twilio
+        form_data = await request.form()
+        # Convert form data to dict
+        data = dict(form_data)
+        
+        logger.info(f"Received call status callback: {data}")
+        
+        # Process the call status
+        result = await process_call_results(data)
+        return result
+    except Exception as e:
+        logger.error(f"Error processing call status callback: {str(e)}", exc_info=True)
+        # Return a 200 response to Twilio even on error
+        # This prevents Twilio from retrying the webhook
+        return {"success": False, "error": str(e)}

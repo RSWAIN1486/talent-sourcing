@@ -7,9 +7,13 @@ from app.core.security import get_current_user
 from app.models.database import User, get_candidate_by_id
 from app.services.voice_screening import voice_screening_service
 from app.utils.phone_utils import format_phone_number
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# When registering webhooks with Ultravox/Twilio
+webhook_url = f"{settings.WEBHOOK_BASE_URL}/api/voice-screening/webhook"
 
 @router.post("/screen/{candidate_id}", response_model=Dict[str, Any])
 async def initiate_voice_screening(
@@ -80,16 +84,14 @@ async def get_screening_status(
     }
 
 # Webhook routes - these don't require authentication as they're called by Twilio
-@router.post("/webhooks/voice-call/status", response_model=Dict[str, Any])
-async def webhook_call_status(request: Request) -> Dict[str, Any]:
-    """
-    Webhook endpoint for Twilio call status updates
-    """
+@router.post("/webhooks/voice-call/status")
+async def webhook_call_status(request: Request):
+    """Webhook endpoint for Twilio call status updates"""
     try:
         # Parse the form data from Twilio
         form_data = await request.form()
         # Convert form data to dict
-        data = {key: form_data[key] for key in form_data}
+        data = dict(form_data)
         
         logger.info(f"Received call status webhook: {data}")
         

@@ -199,3 +199,78 @@ async def analyze_resume(file_path: str) -> Dict[str, Any]:
         }
     
     return result 
+
+async def analyze_call_transcript(summary: str) -> Dict[str, Any]:
+    """
+    Analyze a voice screening summary using OpenAI to extract structured data.
+    
+    Args:
+        summary: The screening summary from Ultravox
+        
+    Returns:
+        Dict containing analysis results including:
+        - screening_score: Overall score (0-100)
+        - notice_period: Standardized notice period
+        - current_compensation: Standardized current compensation
+        - expected_compensation: Standardized expected compensation
+    """
+    if not summary or summary == "No summary available":
+        logger.warning("No valid summary provided for analysis")
+        return {
+            "screening_score": 0,
+            "notice_period": "Not specified",
+            "current_compensation": "Not specified",
+            "expected_compensation": "Not specified"
+        }
+    
+    analysis_prompt = f"""
+    You are an AI recruitment assistant analyzing a voice screening summary.
+    
+    Summary:
+    {summary}
+     Please analyze this transcript and extract the following information:
+    
+    1. Notice period: Extract the candidate's notice period and standardize it to a clear format (e.g., "30 days", "2 months", "immediate"). If not mentioned, use "Unknown".
+    
+    2. Current compensation: Extract the candidate's current compensation and standardize it (e.g., "$90,000/year", "₹25 lakhs per annum"). If not mentioned, use "Unknown".
+    
+    3. Expected compensation: Extract the candidate's expected compensation and standardize it. If not mentioned, use "Unknown".
+    
+    4. Screening score: Provide a score from 0 to 100 based on how well the candidate communicated, their qualifications, and overall fit for the role.
+ 
+    
+    Provide your response in the following JSON format:
+    {{
+        "notice_period": "standardized period",
+        "current_compensation": "standardized amount",
+        "expected_compensation": "standardized amount",
+        "screening_score": numeric_score
+    }}
+    Only include the JSON object, nothing else.
+    """
+    
+    try:
+        # Use the same model as other AI functions
+        analysis_response = openai.chat.completions.create(
+            model="meta-llama/Meta-Llama-3.1-8B-Instruct",  # Same model as resume analysis
+            messages=[{"role": "user", "content": analysis_prompt}],
+        )
+        analysis_text = analysis_response.choices[0].message.content.strip()
+        
+        # Clean up and parse the response
+        analysis_text = re.sub(r'```json\s*|\s*```', '', analysis_text)
+        result = json.loads(analysis_text)
+        
+        # Ensure screening_score is an integer
+        if "screening_score" in result:
+            result["screening_score"] = int(float(result["screening_score"]))
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error analyzing call summary with OpenAI: {str(e)}")
+        return {
+            "screening_score": 0,
+            "notice_period": "Not specified",
+            "current_compensation": "Not specified",
+            "expected_compensation": "Not specified"
+        } 
