@@ -804,6 +804,8 @@ async def process_call_results(call_data: dict) -> dict:
             expected_compensation = "$110,000"
             screening_summary = "The candidate is interested in the position. They have a 30-day notice period at their current job. Currently making $90,000 and expecting $110,000 for the new role."
         else:
+            await asyncio.sleep(4)  # Adding a delay of 3 seconds before calling the API
+
             # Get call transcript and analysis from Ultravox
             async with httpx.AsyncClient() as client:
                 try:
