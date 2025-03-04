@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Dict, Any
 from bson import ObjectId
 import logging
@@ -13,8 +13,8 @@ class User:
         self.full_name = data.get("full_name", "")
         self.is_active = data.get("is_active", True)
         self.is_superuser = data.get("is_superuser", False)
-        self.created_at = data.get("created_at", datetime.utcnow())
-        self.updated_at = data.get("updated_at", datetime.utcnow())
+        self.created_at = data.get("created_at", datetime.now(UTC))
+        self.updated_at = data.get("updated_at", datetime.now(UTC))
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -45,9 +45,14 @@ class CandidateResponse:
         self.resume_score = data.get("resume_score", 0.0)
         self.screening_score = data.get("screening_score")
         self.screening_summary = data.get("screening_summary")
+        self.screening_in_progress = data.get("screening_in_progress", False)
+        self.call_transcript = data.get("call_transcript")
+        self.notice_period = data.get("notice_period")
+        self.current_compensation = data.get("current_compensation")
+        self.expected_compensation = data.get("expected_compensation")
         self.created_by_id = str(data.get("created_by_id")) if data.get("created_by_id") else None
-        self.created_at = data.get("created_at", datetime.utcnow())
-        self.updated_at = data.get("updated_at", datetime.utcnow())
+        self.created_at = data.get("created_at", datetime.now(UTC))
+        self.updated_at = data.get("updated_at", datetime.now(UTC))
 
     @classmethod
     def model_validate(cls, data: dict) -> 'CandidateResponse':
@@ -65,8 +70,8 @@ def create_user(email: str, hashed_password: str, full_name: str) -> dict:
         "full_name": full_name,
         "is_active": True,
         "is_superuser": False,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     }
 
 def create_job(
@@ -91,8 +96,8 @@ def create_job(
             "resume_screened": 0,
             "phone_screened": 0,
             "created_by_id": ObjectId(created_by["_id"]),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC)
         }
         logger.info(f"Created job document: {job}")
         return job
@@ -114,7 +119,6 @@ def create_candidate(
     """Create a candidate document"""
     return {
         "_id": ObjectId(),
-        "id": str(ObjectId()),  # Add string ID for frontend
         "job_id": ObjectId(job_id),
         "name": name,
         "email": email,
@@ -125,9 +129,14 @@ def create_candidate(
         "resume_score": resume_score,
         "screening_score": None,
         "screening_summary": None,
+        "screening_in_progress": False,
+        "call_transcript": None,
+        "notice_period": None,
+        "current_compensation": None,
+        "expected_compensation": None,
         "created_by_id": ObjectId(created_by_id) if created_by_id else None,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     }
 
 def serialize_user(user: dict) -> dict:
@@ -160,19 +169,49 @@ def serialize_job(job: dict) -> dict:
 
 def serialize_candidate(candidate: dict) -> dict:
     """Convert MongoDB candidate document to JSON-serializable format"""
-    return {
-        "id": str(candidate["_id"]),
-        "job_id": str(candidate["job_id"]),
-        "name": candidate["name"],
-        "email": candidate["email"],
-        "phone": candidate["phone"],
-        "location": candidate["location"],
-        "resume_file_id": candidate["resume_file_id"],
-        "skills": candidate["skills"],
-        "resume_score": candidate["resume_score"],
-        "screening_score": candidate["screening_score"],
-        "screening_summary": candidate["screening_summary"],
-        "created_by_id": str(candidate["created_by_id"]) if candidate["created_by_id"] else None,
-        "created_at": candidate["created_at"].isoformat(),
-        "updated_at": candidate["updated_at"].isoformat()
-    } 
+    try:
+        # Get either resume_file_id or resume_path
+        resume_identifier = candidate.get("resume_file_id", candidate.get("resume_path", ""))
+        
+        return {
+            "id": str(candidate["_id"]),
+            "job_id": str(candidate["job_id"]),
+            "name": candidate["name"],
+            "email": candidate["email"],
+            "phone": candidate["phone"],
+            "location": candidate["location"],
+            "resume_file_id": resume_identifier,  # Use whichever we found
+            "skills": candidate["skills"],
+            "resume_score": candidate["resume_score"],
+            "screening_score": candidate["screening_score"],
+            "screening_summary": candidate["screening_summary"],
+            "screening_in_progress": candidate.get("screening_in_progress", False),
+            "call_transcript": candidate.get("call_transcript"),
+            "notice_period": candidate.get("notice_period"),
+            "current_compensation": candidate.get("current_compensation"),
+            "expected_compensation": candidate.get("expected_compensation"),
+            "created_by_id": str(candidate["created_by_id"]) if candidate.get("created_by_id") else None,
+            "created_at": candidate["created_at"].isoformat(),
+            "updated_at": candidate["updated_at"].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error serializing candidate {candidate.get('_id', 'unknown')}: {str(e)}")
+        logger.error(f"Candidate data: {candidate}")
+        raise
+
+async def get_candidate_by_id(candidate_id: str) -> Optional[dict]:
+    """
+    Get a candidate by ID without requiring the job_id
+    """
+    from app.core.mongodb import get_database
+    
+    try:
+        db = await get_database()
+        candidate_data = await db.candidates.find_one({"_id": ObjectId(candidate_id)})
+        if candidate_data:
+            return serialize_candidate(candidate_data)
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching candidate by ID: {str(e)}", exc_info=True)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Error fetching candidate: {str(e)}") 

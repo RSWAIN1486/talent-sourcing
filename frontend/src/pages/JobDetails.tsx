@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Chip,
   LinearProgress,
+  Tooltip
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -101,11 +102,11 @@ export default function JobDetails() {
         return;
       }
       
-      await jobsApi.screenCandidate(jobId, candidateId);
+      await jobsApi.voiceScreenCandidate(jobId, candidateId);
       
       queryClient.invalidateQueries({ queryKey: ['candidates', id] });
       
-      alert('Screening call initiated successfully!');
+      alert('Voice screening call initiated successfully!');
     } catch (error) {
       console.error('Error initiating screening call:', error);
       alert('Failed to initiate screening call. Please try again.');
@@ -290,13 +291,16 @@ export default function JobDetails() {
         <Table size="medium">
           <TableHead>
             <TableRow>
-              <TableCell width="15%">Name</TableCell>
-              <TableCell width="15%">Email</TableCell>
-              <TableCell width="12%">Phone</TableCell>
-              <TableCell width="8%">Location</TableCell>
-              <TableCell width="10%">Resume Score</TableCell>
-              <TableCell width="10%">Screen Score</TableCell>
-              <TableCell width="20%">Top Skills</TableCell>
+              <TableCell width="12%">Name</TableCell>
+              <TableCell width="12%">Email</TableCell>
+              <TableCell width="8%">Phone</TableCell>
+              <TableCell width="7%">Location</TableCell>
+              <TableCell width="7%">Resume Score</TableCell>
+              <TableCell width="7%">Screen Score</TableCell>
+              <TableCell width="7%">Notice Period</TableCell>
+              <TableCell width="8%">Current Comp.</TableCell>
+              <TableCell width="8%">Expected Comp.</TableCell>
+              <TableCell width="14%">Top Skills</TableCell>
               <TableCell width="10%">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -312,8 +316,26 @@ export default function JobDetails() {
                 </TableCell>
                 <TableCell>
                   {candidate.screening_score != null 
-                    ? candidate.screening_score.toFixed(1) 
+                    ? (
+                      <Tooltip title={candidate.screening_summary || 'No screening summary available'}>
+                        <span>{candidate.screening_score.toFixed(1)}</span>
+                      </Tooltip>
+                    ) 
+                    : candidate.screening_in_progress
+                    ? <Box display="flex" alignItems="center">
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        <span>In progress</span>
+                      </Box>
                     : 'Not Screened'}
+                </TableCell>
+                <TableCell>
+                  {candidate.notice_period || '-'}
+                </TableCell>
+                <TableCell>
+                  {candidate.current_compensation || '-'}
+                </TableCell>
+                <TableCell>
+                  {candidate.expected_compensation || '-'}
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1} flexWrap="wrap">
@@ -341,11 +363,14 @@ export default function JobDetails() {
                     <IconButton
                       size="small"
                       onClick={() => handleScreenCandidate(candidate.job_id, candidate.id)}
-                      disabled={!candidate.phone || candidate.screening_score != null}
+                      disabled={!candidate.phone || candidate.screening_score != null || candidate.screening_in_progress}
                       aria-label={`Screen ${candidate.name}`}
                       color="primary"
                     >
-                      <PhoneIcon />
+                      {candidate.screening_in_progress 
+                        ? <CircularProgress size={18} /> 
+                        : <PhoneIcon />
+                      }
                     </IconButton>
                     <IconButton
                       size="small"

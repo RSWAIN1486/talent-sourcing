@@ -16,6 +16,7 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Skill extraction and scoring
 - Candidate profile management
 - Resume download functionality
+- Automated voice screening for candidates
 
 ### AI Integration
 - DeepInfra API integration
@@ -23,6 +24,7 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Automatic information extraction
 - Skill proficiency scoring
 - Overall candidate scoring
+- Voice agent for phone screening with Ultravox AI
 
 ### Analytics & Reporting
 - Job statistics dashboard
@@ -51,6 +53,8 @@ A modern web application for talent sourcing teams to manage job postings, handl
 - Llama model integration
 - PDF text extraction
 - Natural language processing
+- Ultravox AI for voice synthesis
+- Twilio for phone call integration
 
 ## Getting Started
 
@@ -164,6 +168,82 @@ talent-sourcing/
 - Frontend: Jest and React Testing Library
 - E2E: Cypress
 - Coverage requirements: 80% minimum
+
+#### Running Backend Tests
+
+The backend tests are organized by functionality:
+- Job management tests
+- Candidate management tests
+- Authentication tests
+- Voice screening tests
+- API endpoint tests
+
+**Running All Tests**
+
+To run all backend tests at once:
+```bash
+cd backend
+# Using the batch file
+tests\run_tests.bat
+
+# Or using pytest directly
+python -m pytest
+```
+
+**Running Tests by Functionality**
+
+To run tests for specific functionality:
+```bash
+cd backend
+# Job management tests
+python -m pytest tests/jobs -v
+
+# Candidate management tests
+python -m pytest tests/candidates -v
+
+# Authentication tests
+python -m pytest tests/auth -v
+
+# Voice screening tests
+python -m pytest tests/voice_screening -v
+
+# API endpoint tests
+python -m pytest tests/test_api_endpoints.py -v
+```
+
+**Test Structure**
+
+The backend tests follow a consistent structure:
+```
+backend/tests/
+├── jobs/                  # Job management tests
+│   ├── conftest.py        # Job test fixtures
+│   └── test_jobs.py       # Job service tests
+├── candidates/            # Candidate management tests
+│   ├── conftest.py        # Candidate test fixtures
+│   └── test_candidates.py # Candidate service tests
+├── auth/                  # Authentication tests
+│   ├── conftest.py        # Auth test fixtures
+│   └── test_auth.py       # Auth service tests
+├── voice_screening/       # Voice screening tests
+│   ├── conftest.py        # Voice screening test fixtures
+│   └── test_voice_screening.py # Voice screening service tests
+├── test_api_endpoints.py  # API endpoint integration tests
+└── run_tests.bat          # Batch file to run all tests
+```
+
+Each test module uses pytest fixtures defined in the corresponding `conftest.py` file to mock dependencies and set up test data.
+
+**Test-Driven Development**
+
+We follow Test-Driven Development (TDD) principles:
+1. Write tests first
+2. Run the tests (they should fail)
+3. Implement the functionality
+4. Run the tests again (they should pass)
+5. Refactor as needed
+
+Before implementing any new feature or fixing a bug, ensure that you have appropriate test coverage.
 
 ### Branching Strategy
 - main: Production-ready code

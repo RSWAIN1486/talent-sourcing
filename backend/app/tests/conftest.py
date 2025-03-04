@@ -2,8 +2,16 @@ import pytest
 import motor.motor_asyncio
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.mongodb import get_database, mongodb
+from app.core.mongodb import get_database
 from app.core.config import settings
+
+# Global variables for test MongoDB connection
+class TestMongoDB:
+    client = None
+    db = None
+
+# Create a test MongoDB instance
+test_mongodb = TestMongoDB()
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -40,9 +48,9 @@ async def test_db():
     # Replace the get_database function
     app.dependency_overrides[get_database] = get_test_database
     
-    # Store the test database in the MongoDB instance
-    mongodb.client = client
-    mongodb.db = db
+    # Store the test database in the test MongoDB instance
+    test_mongodb.client = client
+    test_mongodb.db = db
     
     try:
         yield db
@@ -59,8 +67,8 @@ async def test_db():
             pass
             
         app.dependency_overrides.clear()
-        mongodb.client = None
-        mongodb.db = None
+        test_mongodb.client = None
+        test_mongodb.db = None
 
 @pytest.fixture
 def client(test_db):
