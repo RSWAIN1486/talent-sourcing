@@ -22,7 +22,8 @@ frontend_origins = [
     "http://127.0.0.1:8000",
     "http://localhost:5173",
     "http://localhost:4173",
-    "https://talent-sourcing-fe.onrender.com"
+    "https://talent-sourcing-fe.onrender.com",
+    "https://talent-sourcing-zerograd-fe.onrender.com"
 ]
 
 # ✅ Set all CORS enabled origins
