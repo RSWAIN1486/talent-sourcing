@@ -6,7 +6,7 @@ export default defineConfig({
   preview: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 4173,
-    allowedHosts: ["https://talent-sourcing-zerograd-fe.onrender.com"], // 👈 Add this
+    allowedHosts: ["talent-sourcing-zerograd-fe.onrender.com"], // 👈 Add this
   },
   server: {
     host: "0.0.0.0",
