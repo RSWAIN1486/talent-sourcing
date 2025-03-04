@@ -545,26 +545,20 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         
         # Create a system prompt based on the job details
         system_prompt = f"""
-        You are an AI voice assistant conducting a screening interview for a job. 
-        
+        You are an AI voice assistant conducting a very brief screening for a job. 
+
         Job Title: {job.get('title')}
         Job Description: {job.get('description')}
-        
+
         Candidate Name: {candidate.get('name')}
-        
-        Your task is to conduct a brief less than 3 minute screening interview to assess the candidate. 
-        
+
+        Your task is to conduct a very brief call to the candidate. Keep everything to the point and concise.
+
         Follow this structure:
-        1. Greeting: Introduce yourself as an AI assistant for [Company Name] and confirm you're speaking with {candidate.get('name')}
-        2. Initial Check: Ask if they are currently looking for job opportunities
-        3. Notice Period: Ask about their current notice period
-        4. Compensation: Ask about their current and expected compensation
-        5. Technical Assessment: Ask if they have any experience with the technologies used in the job description.
-        6. Closing: Thank them for their time and explain the next steps in the process
         
-        Be professional, friendly, and concise. Listen to their answers and respond appropriately.
-        After the call, provide a summary of the candidate's responses and a screening score from 0 to 100.
-        """
+        Notice Period, Current Compensation, Expected Compensation: Ask about their notice period, current compensation and expected compensation and wait for their responses.
+        Closing: Post they share their responses, Just thank them and disconnect the call.
+        Be professional, friendly, and keep it very concise since we are testing this feature out and don't want to waste the candidate's time. Listen to their answers and respond appropriately."""
         
         # Initialize Twilio client
         try:
