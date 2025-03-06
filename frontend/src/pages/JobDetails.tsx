@@ -276,7 +276,7 @@ export default function JobDetails() {
       {/* Header Section with Job Details */}
       <Card 
         elevation={0}
-        sx={{ 
+        sx={{
           mb: 4,
           bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'background.paper',
           borderRadius: 2,
@@ -294,15 +294,16 @@ export default function JobDetails() {
                 sx={{ ml: 2 }}
               />
             </Box>
+
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Typography variant="subtitle1" color="text.secondary">
-                Created: {formattedDate}
-              </Typography>
-              <Button
+              Created: {formattedDate}
+            </Typography>
+            <Button
                 component="label"
-                variant="contained"
-                startIcon={<CloudUploadIcon />}
-                disabled={isUploading}
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              disabled={isUploading}
                 sx={{
                   borderRadius: 2,
                   textTransform: 'none',
@@ -312,35 +313,28 @@ export default function JobDetails() {
                 }}
               >
                 {isUploading ? 'Uploading...' : 'Upload Resume'}
-                <input
-                  type="file"
-                  hidden
-                  multiple
+              <input
+                type="file"
+                hidden
+                multiple
                   accept=".pdf,.doc,.docx"
                   onChange={handleUploadResume}
-                />
-              </Button>
-              <Button
-                variant="outlined"
+              />
+            </Button>
+            <Button
+              variant="outlined"
                 startIcon={<SyncIcon />}
-                onClick={handleSyncCandidates}
-                disabled={syncCandidatesMutation.isPending}
+              onClick={handleSyncCandidates}
+              disabled={syncCandidatesMutation.isPending}
                 sx={{
                   borderRadius: 2,
                   textTransform: 'none',
                 }}
-              >
-                {syncCandidatesMutation.isPending ? (
-                  <>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Syncing...
-                  </>
-                ) : (
-                  'Sync Candidates'
-                )}
-              </Button>
-            </Box>
+            >
+                {syncCandidatesMutation.isPending ? 'Syncing...' : 'Sync Candidates'}
+            </Button>
           </Box>
+        </Box>
 
           {statusMessage && (
             <Alert 
@@ -361,7 +355,7 @@ export default function JobDetails() {
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {job?.description}
-            </Typography>
+                </Typography>
           </Box>
 
           <Divider sx={{ my: 3 }} />
@@ -396,7 +390,7 @@ export default function JobDetails() {
                 {job?.responsibilities}
               </Typography>
             </Collapse>
-          </Box>
+        </Box>
 
           <Divider sx={{ my: 3 }} />
 
@@ -447,10 +441,10 @@ export default function JobDetails() {
             Candidates ({candidates?.length || 0})
           </Typography>
 
-          <TableContainer>
+      <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow>
+          <TableHead>
+            <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Phone</TableCell>
@@ -462,10 +456,10 @@ export default function JobDetails() {
                   <TableCell>Expected Comp.</TableCell>
                   <TableCell>Top Skills</TableCell>
                   <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {candidates?.map((candidate) => (
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {candidates?.map((candidate) => (
                   <TableRow 
                     key={candidate.id}
                     sx={{ 
@@ -477,10 +471,10 @@ export default function JobDetails() {
                     }}
                   >
                     <TableCell sx={{ fontWeight: 500 }}>{candidate.name}</TableCell>
-                    <TableCell>{candidate.email}</TableCell>
+                <TableCell>{candidate.email}</TableCell>
                     <TableCell>{candidate.phone || '-'}</TableCell>
-                    <TableCell>{candidate.location || '-'}</TableCell>
-                    <TableCell>
+                <TableCell>{candidate.location || '-'}</TableCell>
+                <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography 
                           variant="body2" 
@@ -509,8 +503,8 @@ export default function JobDetails() {
                           }}
                         />
                       </Box>
-                    </TableCell>
-                    <TableCell>
+                </TableCell>
+                <TableCell>
                       {candidate.screening_score ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography 
@@ -548,41 +542,41 @@ export default function JobDetails() {
                       ) : (
                         'Not Screened'
                       )}
-                    </TableCell>
+                </TableCell>
                     <TableCell>{candidate.notice_period || '-'}</TableCell>
                     <TableCell>{candidate.current_compensation || '-'}</TableCell>
                     <TableCell>{candidate.expected_compensation || '-'}</TableCell>
-                    <TableCell>
+                <TableCell>
                       <Box display="flex" gap={0.5} flexWrap="wrap">
                         {Object.entries(candidate.skills || {})
-                          .sort(([, a], [, b]) => b - a)
-                          .slice(0, 3)
-                          .map(([skill, score]) => (
-                            <Chip
-                              key={skill}
-                              label={`${skill} (${(score * 100).toFixed(0)}%)`}
-                              size="small"
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 3)
+                      .map(([skill, score]) => (
+                        <Chip
+                          key={skill}
+                          label={`${skill} (${(score * 100).toFixed(0)}%)`}
+                          size="small"
                               sx={{ 
                                 bgcolor: theme.palette.mode === 'dark' 
                                   ? 'rgba(144, 202, 249, 0.2)' 
                                   : 'rgba(25, 118, 210, 0.1)',
                               }}
-                            />
-                          ))}
-                      </Box>
-                    </TableCell>
+                        />
+                      ))}
+                  </Box>
+                </TableCell>
                     <TableCell align="right">
                       <Box display="flex" gap={1} justifyContent="flex-end">
                         <Tooltip title="Download Resume">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDownloadResume(candidate.job_id, candidate.id, candidate.name)}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDownloadResume(candidate.job_id, candidate.id, candidate.name)}
                             sx={{ 
                               color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
                             }}
-                          >
-                            <DownloadIcon />
-                          </IconButton>
+                    >
+                      <DownloadIcon />
+                    </IconButton>
                         </Tooltip>
                         <Tooltip title={
                           !candidate.phone 
@@ -592,10 +586,10 @@ export default function JobDetails() {
                               : 'Start screening call'
                         }>
                           <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleScreenCandidate(candidate.job_id, candidate.id)}
-                              disabled={!candidate.phone || candidate.screening_score != null || candidate.screening_in_progress}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleScreenCandidate(candidate.job_id, candidate.id)}
+                      disabled={!candidate.phone || candidate.screening_score != null || candidate.screening_in_progress}
                               sx={{ 
                                 color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
                               }}
@@ -605,25 +599,25 @@ export default function JobDetails() {
                               ) : (
                                 <PhoneIcon />
                               )}
-                            </IconButton>
+                    </IconButton>
                           </span>
                         </Tooltip>
                         <Tooltip title="Delete Candidate">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteCandidate(candidate.id)}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteCandidate(candidate.id)}
                             sx={{ color: 'error.main' }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                         </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
         </Box>
       </Card>
 
