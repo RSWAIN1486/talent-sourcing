@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Grid,
   TextField,
   Typography,
@@ -17,7 +16,6 @@ import {
   Toolbar,
   IconButton,
   Fade,
-  Theme,
   useTheme,
   Paper,
 } from '@mui/material';
@@ -26,12 +24,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { jobsApi, Job } from '../services/api';
-import { ChangeEvent } from 'react';
 import WorkIcon from '@mui/icons-material/Work';
 import GroupIcon from '@mui/icons-material/Group';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import SearchIcon from '@mui/icons-material/Search';
 
 interface JobFormData {
@@ -142,6 +138,10 @@ export default function Jobs() {
       setError('Failed to sync some jobs. Please try again.');
     }
   });
+
+  const onSubmit = (data: JobFormData) => {
+    handleCreateJob(data);
+  };
 
   const handleCreateJob = async (data: JobFormData) => {
     try {
@@ -503,7 +503,7 @@ export default function Jobs() {
               {error}
             </Typography>
           )}
-          <Box display="flex" flexDirection="column" gap={3} mt={1}>
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} display="flex" flexDirection="column" gap={3} mt={1}>
             <TextField
               label="Title"
               fullWidth
@@ -570,38 +570,38 @@ export default function Jobs() {
                 }
               }}
             />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+              <Button 
+                onClick={handleCloseDialog}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  color: theme.palette.mode === 'dark' ? 'grey.300' : 'grey.700'
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={createJobMutation.isPending}
+                sx={{
+                  borderRadius: 2,
+                  px: 3,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
+                    : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+                }}
+              >
+                {createJobMutation.isPending ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Create'
+                )}
+              </Button>
+            </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-          <Button 
-            onClick={handleCloseDialog}
-            sx={{ 
-              borderRadius: 2,
-              px: 3,
-              color: theme.palette.mode === 'dark' ? 'grey.300' : 'grey.700'
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={createJobMutation.isPending}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              background: theme.palette.mode === 'dark'
-                ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
-                : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
-            }}
-          >
-            {createJobMutation.isPending ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              'Create'
-            )}
-          </Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -1,5 +1,5 @@
 import { Box, AppBar, Toolbar, IconButton, Typography, Button, useTheme, Tooltip } from '@mui/material';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import WorkIcon from '@mui/icons-material/Work';
@@ -59,7 +59,7 @@ export default function Layout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
     navigate('/login');
   };
 
@@ -99,15 +99,13 @@ export default function Layout() {
             <Box>
               <NavButton
                 startIcon={<WorkIcon />}
-                component={Link}
-                to="/jobs"
+                onClick={() => navigate('/jobs')}
               >
                 Jobs
               </NavButton>
               <NavButton
                 startIcon={<BarChartIcon />}
-                component={Link}
-                to="/stats"
+                onClick={() => navigate('/stats')}
               >
                 Statistics
               </NavButton>

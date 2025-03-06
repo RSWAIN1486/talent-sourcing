@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Paper,
   useTheme,
   IconButton,
   Table,
@@ -32,21 +31,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsApi } from '../services/api';
 import { useState, ChangeEvent } from 'react';
 import { styled } from '@mui/material/styles';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
 import MuiAlert from '@mui/material/Alert';
-
-// Add the styled input component for file upload
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
 
 // Add this styled component for the rotate animation
 const ExpandMore = styled((props: {
@@ -162,7 +147,7 @@ export default function JobDetails() {
 
   const handleUploadResume = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
+    if (files.length > 0 && job) {
       setIsUploading(true);
       setUploadProgress({});
       
