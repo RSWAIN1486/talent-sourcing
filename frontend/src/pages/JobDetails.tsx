@@ -27,11 +27,39 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PhoneIcon from '@mui/icons-material/Phone';
 import SyncIcon from '@mui/icons-material/Sync';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsApi } from '../services/api';
 import { useState, ChangeEvent } from 'react';
 import { styled } from '@mui/material/styles';
 import MuiAlert from '@mui/material/Alert';
+
+// Add a styled AI badge
+const AIPoweredBadge = styled(Chip)(({ theme }) => ({
+  borderRadius: '16px',
+  height: '28px',
+  padding: '0 8px',
+  fontWeight: 600,
+  fontSize: '0.75rem',
+  background: theme.palette.mode === 'dark'
+    ? 'linear-gradient(45deg, #7b1fa2 30%, #9c27b0 90%)'
+    : 'linear-gradient(45deg, #9c27b0 30%, #d500f9 90%)',
+  color: '#fff',
+  border: 'none',
+  boxShadow: theme.palette.mode === 'dark'
+    ? '0 3px 5px 2px rgba(156, 39, 176, .3)'
+    : '0 3px 5px 2px rgba(156, 39, 176, .2)',
+  '& .MuiChip-icon': {
+    color: '#fff',
+  },
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.palette.mode === 'dark'
+      ? '0 6px 10px 2px rgba(156, 39, 176, .4)'
+      : '0 6px 10px 2px rgba(156, 39, 176, .3)',
+  }
+}));
 
 // Add this styled component for the rotate animation
 const ExpandMore = styled((props: {
@@ -256,13 +284,15 @@ export default function JobDetails() {
       >
         <Box sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-            <Box>
+            <Box display="flex" alignItems="center">
               <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
                 {job?.title}
               </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Created: {formattedDate}
-              </Typography>
+              <AIPoweredBadge
+                icon={<SmartToyIcon />}
+                label="AI Powered"
+                sx={{ ml: 2 }}
+              />
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
@@ -297,7 +327,14 @@ export default function JobDetails() {
                   textTransform: 'none',
                 }}
               >
-                {syncCandidatesMutation.isPending ? 'Syncing...' : 'Sync Candidates'}
+                {syncCandidatesMutation.isPending ? (
+                  <>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Syncing...
+                  </>
+                ) : (
+                  'Sync Candidates'
+                )}
               </Button>
             </Box>
           </Box>
