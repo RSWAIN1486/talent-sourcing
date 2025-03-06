@@ -295,6 +295,9 @@ export default function JobDetails() {
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
+              <Typography variant="subtitle1" color="text.secondary">
+                Created: {formattedDate}
+              </Typography>
               <Button
                 component="label"
                 variant="contained"
