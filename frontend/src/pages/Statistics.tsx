@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Grid, Typography, CircularProgress, useTheme } from '@mui/material';
+import { Box, Card, CardContent, Grid, Typography, CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { jobsApi } from '../services/api';
 import WorkIcon from '@mui/icons-material/Work';
@@ -7,8 +7,6 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import PhoneIcon from '@mui/icons-material/Phone';
 
 export default function Statistics() {
-  const theme = useTheme();
-
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['jobStats'],
     queryFn: jobsApi.getJobStats,
@@ -17,7 +15,7 @@ export default function Statistics() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mt={8}>
         <CircularProgress />
       </Box>
     );
@@ -25,7 +23,7 @@ export default function Statistics() {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" mt={8}>
         <Typography color="error">Error loading statistics</Typography>
       </Box>
     );
@@ -36,51 +34,31 @@ export default function Statistics() {
       title: 'Total Jobs',
       value: stats?.total_jobs || 0,
       icon: WorkIcon,
-      color: theme.palette.primary.main,
-      bgGradient: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.2) 100%)'
+      color: '#2196f3' // Blue
     },
     {
       title: 'Total Candidates',
       value: stats?.total_candidates || 0,
       icon: PeopleIcon,
-      color: theme.palette.success.main,
-      bgGradient: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.2) 100%)'
+      color: '#4caf50' // Green
     },
     {
       title: 'Resume Screened',
       value: stats?.resume_screened || 0,
       icon: AssignmentIcon,
-      color: theme.palette.warning.main,
-      bgGradient: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.2) 100%)'
+      color: '#ff9800' // Orange
     },
     {
       title: 'Phone Screened',
       value: stats?.phone_screened || 0,
       icon: PhoneIcon,
-      color: theme.palette.error.main,
-      bgGradient: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(244, 67, 54, 0.2) 100%)'
+      color: '#f44336' // Red
     }
   ];
 
   return (
-    <Box 
-      sx={{ 
-        p: { xs: 2, sm: 3, md: 4 },
-        minHeight: '100vh',
-        bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'grey.50'
-      }}
-    >
-      <Typography 
-        variant="h4" 
-        gutterBottom 
-        sx={{ 
-          mb: 4,
-          fontWeight: 600,
-          color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
-        }}
-      >
-        Statistics
-      </Typography>
+    <Box sx={{ pt: 8, px: 3 }}>
+      <Typography variant="h4" gutterBottom>Statistics</Typography>
       
       <Grid container spacing={3}>
         {statCards.map((stat) => {
@@ -88,54 +66,21 @@ export default function Statistics() {
           return (
             <Grid item xs={12} sm={6} md={3} key={stat.title}>
               <Card 
-                elevation={0}
                 sx={{ 
                   height: '100%',
-                  background: theme.palette.mode === 'dark' 
-                    ? 'rgba(255, 255, 255, 0.05)' 
-                    : stat.bgGradient,
-                  borderRadius: 2,
-                  transition: 'transform 0.2s ease-in-out',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[4]
+                    boxShadow: (theme) => theme.shadows[4]
                   }
                 }}
               >
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={3}>
-                    <Icon 
-                      sx={{ 
-                        fontSize: 40, 
-                        color: stat.color,
-                        mr: 2,
-                        transition: 'transform 0.2s ease-in-out',
-                        '&:hover': {
-                          transform: 'scale(1.1)'
-                        }
-                      }} 
-                    />
-                    <Typography 
-                      variant="h6" 
-                      component="div"
-                      sx={{ 
-                        fontWeight: 500,
-                        color: theme.palette.mode === 'dark' ? 'text.primary' : 'text.primary'
-                      }}
-                    >
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Icon sx={{ fontSize: 40, color: stat.color, mr: 1 }} />
+                    <Typography variant="h6" component="div">
                       {stat.title}
                     </Typography>
                   </Box>
-                  <Typography 
-                    variant="h3" 
-                    component="div" 
-                    sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: stat.color,
-                      transition: 'color 0.2s ease-in-out'
-                    }}
-                  >
+                  <Typography variant="h3" component="div" align="center">
                     {stat.value.toLocaleString()}
                   </Typography>
                 </CardContent>
@@ -144,6 +89,8 @@ export default function Statistics() {
           );
         })}
       </Grid>
+
+      {/* Add more statistics sections here if needed */}
     </Box>
   );
 } 

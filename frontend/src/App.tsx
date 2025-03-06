@@ -1,11 +1,15 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider, createTheme } from '@mui/material';
+import { useMemo, useState } from 'react';
+import CssBaseline from '@mui/material/CssBaseline';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+
+// Import pages (to be created)
 import Jobs from './pages/Jobs';
 import JobDetails from './pages/JobDetails';
 import Statistics from './pages/Statistics';
-import { ColorModeProvider } from './contexts/ColorModeContext';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -27,9 +31,79 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    // Get saved theme from localStorage or default to dark
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
+
+  const toggleTheme = () => {
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setMode(newMode);
+    localStorage.setItem('theme', newMode);
+  };
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          primary: {
+            main: '#1976d2',
+          },
+          secondary: {
+            main: '#dc004e',
+          },
+          background: {
+            default: mode === 'light' ? '#f5f5f5' : '#121212',
+            paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+          },
+        },
+        typography: {
+          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+          h1: {
+            fontSize: '2.5rem',
+            fontWeight: 500,
+          },
+          h2: {
+            fontSize: '2rem',
+            fontWeight: 500,
+          },
+          h3: {
+            fontSize: '1.75rem',
+            fontWeight: 500,
+          },
+        },
+        components: {
+          MuiAppBar: {
+            styleOverrides: {
+              root: {
+                backgroundColor: mode === 'light' ? '#1976d2' : '#272727',
+              },
+            },
+          },
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                textTransform: 'none',
+              },
+            },
+          },
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                backgroundColor: mode === 'light' ? '#ffffff' : '#1e1e1e',
+              },
+            },
+          },
+        },
+      }),
+    [mode]
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
-      <ColorModeProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -37,7 +111,7 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Layout />
+                  <Layout onToggleTheme={toggleTheme} mode={mode} />
                 </ProtectedRoute>
               }
             >
@@ -48,7 +122,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
-      </ColorModeProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
