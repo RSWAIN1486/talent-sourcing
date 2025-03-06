@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Grid,
   TextField,
   Typography,
@@ -16,22 +17,14 @@ import {
   Toolbar,
   IconButton,
   Fade,
-  useTheme,
-  Paper,
+  Theme,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { jobsApi, Job } from '../services/api';
-
-import WorkIcon from '@mui/icons-material/Work';
-import GroupIcon from '@mui/icons-material/Group';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
-import SearchIcon from '@mui/icons-material/Search';
-
-
+import { ChangeEvent } from 'react';
 
 interface JobFormData {
   title: string;
@@ -140,10 +133,6 @@ export default function Jobs() {
       setError('Failed to sync some jobs. Please try again.');
     }
   });
-
-  const onSubmit = (data: JobFormData) => {
-    handleCreateJob(data);
-  };
 
   const handleCreateJob = async (data: JobFormData) => {
     try {
@@ -422,119 +411,89 @@ export default function Jobs() {
           noValidate
           autoComplete="off"
         >
-          <Typography variant="h5" component="div" fontWeight={600}>
-            Create New Job
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          {error && (
-            <Typography 
-              color="error" 
-              sx={{ mt: 2, mb: 1 }}
-              component="div"
-            >
-              {error}
-            </Typography>
-          )}
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} display="flex" flexDirection="column" gap={3} mt={1}>
-            <TextField
-              label="Title"
-              fullWidth
-              {...register('title', { 
-                required: 'Title is required',
-                minLength: { value: 3, message: 'Title must be at least 3 characters' }
-              })}
-              error={!!errors.title}
-              helperText={errors.title?.message}
-              InputProps={{
-                sx: {
-                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                }
-              }}
-            />
-            <TextField
-              label="Description"
-              fullWidth
-              multiline
-              rows={4}
-              {...register('description', { 
-                required: 'Description is required',
-                minLength: { value: 10, message: 'Description must be at least 10 characters' }
-              })}
-              error={!!errors.description}
-              helperText={errors.description?.message}
-              InputProps={{
-                sx: {
-                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                }
-              }}
-            />
-            <TextField
-              label="Responsibilities"
-              fullWidth
-              multiline
-              rows={4}
-              {...register('responsibilities', { 
-                required: 'Responsibilities are required',
-                minLength: { value: 10, message: 'Responsibilities must be at least 10 characters' }
-              })}
-              error={!!errors.responsibilities}
-              helperText={errors.responsibilities?.message}
-              InputProps={{
-                sx: {
-                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                }
-              }}
-            />
-            <TextField
-              label="Requirements"
-              fullWidth
-              multiline
-              rows={4}
-              {...register('requirements', { 
-                required: 'Requirements are required',
-                minLength: { value: 10, message: 'Requirements must be at least 10 characters' }
-              })}
-              error={!!errors.requirements}
-              helperText={errors.requirements?.message}
-              InputProps={{
-                sx: {
-                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                }
-              }}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-              <Button 
-                onClick={handleCloseDialog}
-                sx={{ 
-                  borderRadius: 2,
-                  px: 3,
-                  color: theme.palette.mode === 'dark' ? 'grey.300' : 'grey.700'
-                }}
+          <DialogTitle id="create-job-dialog-title">Create New Job</DialogTitle>
+          <DialogContent>
+            {error && (
+              <Typography 
+                color="error" 
+                sx={{ mt: 2, mb: 1 }}
+                component="div"
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={createJobMutation.isPending}
-                sx={{
-                  borderRadius: 2,
-                  px: 3,
-                  background: theme.palette.mode === 'dark'
-                    ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
-                    : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+                {error}
+              </Typography>
+            )}
+            <Box display="flex" flexDirection="column" gap={2} mt={1}>
+              <TextField
+                label="Title"
+                fullWidth
+                {...register('title', { 
+                  required: 'Title is required',
+                  minLength: { value: 3, message: 'Title must be at least 3 characters' }
+                })}
+                error={!!errors.title}
+                helperText={errors.title?.message}
+                inputProps={{
+                  'aria-label': 'Job title'
                 }}
-              >
-                {createJobMutation.isPending ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Create'
-                )}
-              </Button>
+              />
+              <TextField
+                label="Description"
+                fullWidth
+                multiline
+                rows={4}
+                {...register('description', { 
+                  required: 'Description is required',
+                  minLength: { value: 10, message: 'Description must be at least 10 characters' }
+                })}
+                error={!!errors.description}
+                helperText={errors.description?.message}
+                inputProps={{
+                  'aria-label': 'Job description'
+                }}
+              />
+              <TextField
+                label="Responsibilities"
+                fullWidth
+                multiline
+                rows={4}
+                {...register('responsibilities', { 
+                  required: 'Responsibilities are required',
+                  minLength: { value: 10, message: 'Responsibilities must be at least 10 characters' }
+                })}
+                error={!!errors.responsibilities}
+                helperText={errors.responsibilities?.message}
+                inputProps={{
+                  'aria-label': 'Job responsibilities'
+                }}
+              />
+              <TextField
+                label="Requirements"
+                fullWidth
+                multiline
+                rows={4}
+                {...register('requirements', { 
+                  required: 'Requirements are required',
+                  minLength: { value: 10, message: 'Requirements must be at least 10 characters' }
+                })}
+                error={!!errors.requirements}
+                helperText={errors.requirements?.message}
+                inputProps={{
+                  'aria-label': 'Job requirements'
+                }}
+              />
             </Box>
-          </Box>
-        </DialogContent>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={createJobMutation.isPending}
+            >
+              {createJobMutation.isPending ? <CircularProgress size={24} /> : 'Create'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
     </Box>
   );
