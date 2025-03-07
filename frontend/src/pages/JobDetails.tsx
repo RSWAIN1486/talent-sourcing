@@ -287,7 +287,7 @@ export default function JobDetails() {
             <Box display="flex" alignItems="center">
               <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
                 {job?.title}
-              </Typography>
+            </Typography>
               <AIPoweredBadge
                 icon={<SmartToyIcon />}
                 label="AI Powered"

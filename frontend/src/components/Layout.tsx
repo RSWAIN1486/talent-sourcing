@@ -120,7 +120,9 @@ export default function Layout() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 fontWeight: 600,
+                cursor: 'pointer',
               }}
+              onClick={() => navigate('/')}
             >
               AI Recruiter
             </Typography>
@@ -195,4 +197,4 @@ export default function Layout() {
       </Box>
     </Box>
   );
-}
+} 

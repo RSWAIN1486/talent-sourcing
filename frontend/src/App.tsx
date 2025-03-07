@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Jobs from './pages/Jobs';
 import JobDetails from './pages/JobDetails';
 import Statistics from './pages/Statistics';
+import LandingPage from './pages/LandingPage';
 import { ColorModeProvider } from './contexts/ColorModeContext';
 
 // Create React Query client
@@ -32,19 +33,28 @@ function App() {
       <ColorModeProvider>
         <Router>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route
-              path="/"
               element={
                 <ProtectedRoute>
                   <Layout />
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Navigate to="/jobs" replace />} />
-              <Route path="jobs" element={<Jobs />} />
-              <Route path="jobs/:id" element={<JobDetails />} />
-              <Route path="stats" element={<Statistics />} />
+              {/* Redirect root to jobs */}
+              <Route path="/" element={<Navigate to="/jobs" replace />} />
+              
+              {/* Main routes without dashboard prefix */}
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/:id" element={<JobDetails />} />
+              <Route path="/stats" element={<Statistics />} />
+              
+              {/* Keep dashboard routes for backward compatibility */}
+              <Route path="/dashboard" element={<Navigate to="/jobs" replace />} />
+              <Route path="/dashboard/jobs" element={<Navigate to="/jobs" replace />} />
+              <Route path="/dashboard/jobs/:id" element={<Navigate to="/jobs/:id" replace />} />
+              <Route path="/dashboard/stats" element={<Navigate to="/stats" replace />} />
             </Route>
           </Routes>
         </Router>
