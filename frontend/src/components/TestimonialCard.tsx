@@ -1,4 +1,4 @@
-import { Card, CardContent, styled } from '@mui/material';
+import { Card, styled } from '@mui/material';
 
 export const TestimonialCard = styled(Card)(({ theme }) => ({
   height: '100%',

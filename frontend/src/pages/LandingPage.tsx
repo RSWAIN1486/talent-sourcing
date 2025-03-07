@@ -22,7 +22,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
-import SecurityIcon from '@mui/icons-material/Security';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useColorMode } from '../contexts/ColorModeContext';
@@ -45,7 +44,7 @@ const HeroSection = styled(Box)(({ theme }) => ({
   padding: theme.spacing(8, 0),
 }));
 
-const GradientText = styled(Typography)(({ theme }) => ({
+const GradientText = styled(Typography)<{ component?: React.ElementType }>(({ theme }) => ({
   background: theme.palette.mode === 'dark'
     ? 'linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)'
     : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
@@ -222,7 +221,7 @@ const LandingPage = () => {
                   label="AI Powered"
                   sx={{ mb: 3 }}
                 />
-                <GradientText variant="h1" component="h1" sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
+                <GradientText variant="h1" sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
                   Revolutionize Your Hiring Process
                 </GradientText>
                 <Typography 

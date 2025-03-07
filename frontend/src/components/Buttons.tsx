@@ -22,16 +22,10 @@ export const GradientButton = styled(Button)(({ theme }) => ({
   }
 }));
 
-export const OutlinedButton = styled(Button)(({ theme }) => ({
+export const OutlinedButton = styled(Button)(() => ({
   borderRadius: '8px',
-  padding: '12px 24px',
-  fontWeight: 600,
   textTransform: 'none',
-  fontSize: '1rem',
-  borderWidth: '2px',
+  fontWeight: 600,
+  padding: '10px 24px',
   transition: 'all 0.3s ease',
-  '&:hover': {
-    borderWidth: '2px',
-    transform: 'translateY(-2px)',
-  }
 })); 
