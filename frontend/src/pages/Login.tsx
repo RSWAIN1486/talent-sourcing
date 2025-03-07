@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -42,6 +42,13 @@ export default function Login() {
     setError('');
     loginMutation.mutate(data);
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      navigate('/jobs');
+    }
+  }, [navigate]);
 
   return (
     <Box
