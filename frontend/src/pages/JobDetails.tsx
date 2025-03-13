@@ -33,6 +33,7 @@ import { jobsApi } from '../services/api';
 import { useState, ChangeEvent } from 'react';
 import { styled } from '@mui/material/styles';
 import MuiAlert from '@mui/material/Alert';
+import JobVoiceSettings from '../components/voice-agent/JobVoiceSettings';
 
 // Add a styled AI badge
 const AIPoweredBadge = styled(Chip)(({ theme }) => ({
@@ -678,6 +679,11 @@ export default function JobDetails() {
           )}
         </Box>
       </Snackbar>
+
+      {/* Job Voice Settings */}
+      <Box sx={{ mb: 4 }}>
+        <JobVoiceSettings jobId={id || ''} />
+      </Box>
     </Box>
   );
 } 

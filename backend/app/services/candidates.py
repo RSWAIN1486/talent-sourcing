@@ -22,6 +22,7 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import json
 from twilio.twiml.voice_response import Connect, VoiceResponse, Say, Stream
+from app.services.voice_agent import get_global_voice_config, get_job_voice_config
 
 logger = logging.getLogger(__name__)
 
@@ -543,22 +544,35 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         if not phone:
             raise HTTPException(status_code=400, detail="Invalid phone number format")
         
-        # Create a system prompt based on the job details
+        # Get voice agent configurations
+        global_config = await get_global_voice_config()
+        job_config = await get_job_voice_config(job_id)
+        
+        # Merge configurations (job config overrides global config where specified)
+        model = job_config.model if job_config.model and not job_config.use_global_config else global_config.model
+        voice_id = job_config.voice_id if job_config.voice_id and not job_config.use_global_config else global_config.voice_id
+        temperature = job_config.temperature if job_config.temperature is not None and not job_config.use_global_config else global_config.temperature
+        recording_enabled = job_config.recording_enabled if job_config.recording_enabled is not None and not job_config.use_global_config else global_config.recording_enabled
+        
+        # Build system prompt
+        base_prompt = job_config.custom_system_prompt if job_config.custom_system_prompt else global_config.base_system_prompt
+        
+        # Add job details to prompt
         system_prompt = f"""
-        You are an AI voice assistant conducting a very brief screening for a job. 
+        {base_prompt}
 
         Job Title: {job.get('title')}
         Job Description: {job.get('description')}
 
         Candidate Name: {candidate.get('name')}
-
-        Your task is to conduct a very brief call to the candidate. Keep everything to the point and concise.
-
-        Follow this structure:
+        """
         
-        Notice Period, Current Compensation, Expected Compensation: Ask about their notice period, current compensation and expected compensation and wait for their responses.
-        Closing: Post they share their responses, Just thank them and disconnect the call.
-        Be professional, friendly, and keep it very concise since we are testing this feature out and don't want to waste the candidate's time. Listen to their answers and respond appropriately."""
+        # Add questions to prompt
+        questions = job_config.custom_questions if job_config.custom_questions else global_config.default_questions
+        if questions:
+            system_prompt += "\n\nPlease ask the candidate the following questions:\n"
+            for i, question in enumerate(questions, 1):
+                system_prompt += f"{i}. {question}\n"
         
         # Initialize Twilio client
         try:
@@ -594,13 +608,13 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
                         # Log the API request details
                         ultravox_payload = {
                             "systemPrompt": system_prompt,
-                            "temperature": 0.7,
-                            "model": "fixie-ai/ultravox",
-                            "voice": "ebae2397-0ba1-4222-9d5b-5313ddeb04b5",
+                            "temperature": float(temperature),
+                            "model": model,
+                            "voice": voice_id,
                             "medium": {
                                 "twilio": {}
                             },
-                            "recordingEnabled": True,
+                            "recordingEnabled": recording_enabled,
                             "firstSpeaker": "FIRST_SPEAKER_USER"
                         }
                         
@@ -699,7 +713,6 @@ async def voice_screen_candidate(job_id: str, candidate_id: str, current_user: U
         else:
             # Make the Twilio call with Ultravox
             try:
-
                 response = VoiceResponse()
                 connect = Connect()
                 connect.stream(url=join_url)

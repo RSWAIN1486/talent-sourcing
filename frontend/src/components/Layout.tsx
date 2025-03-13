@@ -6,6 +6,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useColorMode } from '../contexts/ColorModeContext';
 import { styled } from '@mui/material/styles';
 
@@ -172,6 +173,17 @@ export default function Layout() {
                 </Box>
               )}
             </ThemeToggleButton>
+            
+            <Tooltip title="Profile & Settings">
+              <ActionButton
+                onClick={() => navigate('/profile')}
+                color="inherit"
+                aria-label="profile"
+              >
+                <AccountCircleIcon />
+              </ActionButton>
+            </Tooltip>
+            
             <Tooltip title="Logout">
               <ActionButton
                 onClick={handleLogout}
