@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Jobs from './pages/Jobs';
 import JobDetails from './pages/JobDetails';
 import Statistics from './pages/Statistics';
+import Profile from './pages/Profile';
 import LandingPage from './pages/LandingPage';
 import { ColorModeProvider } from './contexts/ColorModeContext';
 
@@ -42,13 +43,14 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {/* Redirect root to jobs */}
-              <Route path="/" element={<Navigate to="/jobs" replace />} />
-              
-              {/* Main routes without dashboard prefix */}
+              {/* Main routes */}
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:id" element={<JobDetails />} />
               <Route path="/stats" element={<Statistics />} />
+              <Route path="/profile" element={<Profile />} />
+              
+              {/* Redirect root to jobs */}
+              <Route path="/" element={<Navigate to="/jobs" replace />} />
               
               {/* Keep dashboard routes for backward compatibility */}
               <Route path="/dashboard" element={<Navigate to="/jobs" replace />} />

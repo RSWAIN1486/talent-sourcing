@@ -95,6 +95,48 @@ export interface AuthResponse {
   token_type: string;
 }
 
+// Voice Agent Types
+export interface VoiceModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface VoiceInfo {
+  id: string;
+  name: string;
+  language: string;
+  gender?: string;
+  description?: string;
+  preview_url?: string;
+}
+
+export interface GlobalVoiceConfig {
+  model: string;
+  voice_id: string;
+  temperature: number;
+  base_system_prompt: string;
+  default_questions: string[];
+  recording_enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+  created_by_id?: string;
+}
+
+export interface JobVoiceConfig {
+  job_id: string;
+  custom_system_prompt?: string;
+  custom_questions?: string[];
+  use_global_config: boolean;
+  model?: string;
+  voice_id?: string;
+  temperature?: number;
+  recording_enabled?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  created_by_id?: string;
+}
+
 // API functions
 export const jobsApi = {
   // Jobs
@@ -282,6 +324,44 @@ export const authApi = {
 
   logout: () => {
     localStorage.removeItem('access_token');
+  },
+
+  getCurrentUser: async () => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+};
+
+// Voice Agent API
+export const voiceAgentApi = {
+  getGlobalConfig: async (): Promise<GlobalVoiceConfig> => {
+    const response = await api.get('/voice-agent/global-config');
+    return response.data;
+  },
+  
+  updateGlobalConfig: async (config: Partial<GlobalVoiceConfig>): Promise<GlobalVoiceConfig> => {
+    const response = await api.put('/voice-agent/global-config', config);
+    return response.data;
+  },
+  
+  getJobConfig: async (jobId: string): Promise<JobVoiceConfig> => {
+    const response = await api.get(`/voice-agent/job-config/${jobId}`);
+    return response.data;
+  },
+  
+  updateJobConfig: async (jobId: string, config: Partial<JobVoiceConfig>): Promise<JobVoiceConfig> => {
+    const response = await api.put(`/voice-agent/job-config/${jobId}`, config);
+    return response.data;
+  },
+  
+  getVoices: async (): Promise<VoiceInfo[]> => {
+    const response = await api.get('/voice-agent/voices');
+    return response.data;
+  },
+  
+  getModels: async (): Promise<VoiceModel[]> => {
+    const response = await api.get('/voice-agent/models');
+    return response.data;
   }
 };
 

@@ -13,6 +13,7 @@
 2. **Specific Fixes Applied**:
    - Created `app.core.security` module to re-export `get_current_user` from `app.api.deps`
    - Added `get_candidate_by_id` function to `app.models.database` that was being imported by `voice_screening.py`
+   - Created `app.core.logging` module to provide a standardized logging interface
 
 This document records important learnings and insights gained during the development process to prevent repeating mistakes and to preserve knowledge for future reference.
 
@@ -146,4 +147,58 @@ This document records important learnings and insights gained during the develop
    - Watch for "coroutine was never awaited" warnings in tests
    - Ensure test assertions run after all awaitable operations complete
    - AsyncMock may not work as expected for methods that are directly awaited
-   - If a method in your production code has changed from sync to async or vice versa, tests will likely break 
+   - If a method in your production code has changed from sync to async or vice versa, tests will likely break
+
+## Voice Agent Configuration System
+
+We've implemented a comprehensive voice agent configuration system that allows for both global settings and job-specific customizations:
+
+### Backend Components
+
+1. **Models**:
+   - `GlobalVoiceConfig`: Stores system-wide voice agent settings
+   - `JobVoiceConfig`: Stores job-specific voice agent settings
+   - `VoiceModel`: Enum for available voice models
+   - `VoiceLanguage`: Enum for supported languages
+   - `VoiceInfo`: Information about available voices
+
+2. **Services**:
+   - `voice_agent.py`: Handles CRUD operations for voice agent configurations
+   - Integration with Ultravox API for fetching available models and voices
+   - MongoDB storage for configuration persistence
+
+3. **API Endpoints**:
+   - Global configuration management
+   - Job-specific configuration management
+   - Available voices and models retrieval
+
+### Frontend Components
+
+1. **API Services**:
+   - Voice agent configuration API client
+   - Type definitions for voice agent configurations
+
+2. **UI Components**:
+   - Global voice settings page in user profile
+   - Job-specific voice settings in job details
+   - Voice model and voice selection interfaces
+   - Temperature and other parameter controls
+
+3. **User Experience**:
+   - Intuitive interface for configuring voice agents
+   - Preview capabilities for testing voices
+   - Job-specific overrides for customization
+
+### Integration Points
+
+1. **Candidate Screening**:
+   - Voice agent configurations are applied during candidate screening
+   - Job-specific settings override global settings when specified
+   - System prompts and questions are customizable
+
+2. **Profile Management**:
+   - User profile includes voice agent configuration
+   - Global settings accessible from profile page
+   - Account information displayed alongside settings
+
+This implementation provides a flexible and user-friendly way to customize the voice agent's behavior both globally and per job, enhancing the screening experience for both recruiters and candidates. 
