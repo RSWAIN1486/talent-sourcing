@@ -2,6 +2,15 @@
 
 A modern web application for talent sourcing teams to manage job postings, handle resume uploads, and conduct AI-driven resume and voice screenings for candidates.
 
+## Demo
+Check out the demo video to see the application in action.
+
+
+https://github.com/user-attachments/assets/f3ff2e48-b01f-4d61-a193-192bc898cc00
+
+
+
+
 ## Features
 
 ### Job Management
